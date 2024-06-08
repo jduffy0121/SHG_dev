@@ -85,3 +85,26 @@ Advisor:
 * [Dr. Wencan Jin](http://wp.auburn.edu/JinLab/) (Auburn University – Physics Department: wjin@auburn.edu)
 
 Join our SHG Simulation Software Google group: shg-simulation-package@googlegroup.com
+
+
+# Directory Structure
+
+
+```bash
+├── StartGui.py
+│   ├── Simulation GUI
+│   │   ├── Material Selection
+│   │   │   ├── Select Material
+│   │   │
+│   │   └── Point Group Selection
+│   │    
+│   │ 
+│   │   
+│   └── Fitting GUI
+│       ├── Selection
+│       ├── Confirmation
+│       └── Display
+├── LICENSE
+├── README.md
+└── .gitignore
+```
