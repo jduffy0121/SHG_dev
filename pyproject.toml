@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "shg_simulation"
+version = "0.1.0"
+description = ""
+keywords = [""]
+authors = [
+  "Hussam Mustafa <hnm0037@auburn.edu>",
+  "Brian Opatosky <bbo0007@auburn.edu>",
+  "Chunli Tang <chunli.tang@auburn.edu>",
+  "Jacob Duffy <jod0007@auburn.edu>",
+]
+readme = "README.md"
+license = "LICENSE.txt"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pyqt6 = "^6.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+shg_gui = "shg_simulation.gui.init_gui:main"
