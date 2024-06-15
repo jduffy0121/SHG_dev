@@ -1,27 +1,27 @@
 import sys
 import pathlib
-from typing import List, Union
-from dataclasses import dataclass
-from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QLineEdit, QMessageBox, QRadioButton, QButtonGroup, QFileDialog, QTextEdit
+from typing import List, Union, Tuple
+from dataclasses import dataclass, field
+from PyQt6.QtWidgets import (
+    QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, 
+    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QLineEdit, QMessageBox, 
+    QRadioButton, QButtonGroup, QFileDialog, QTextEdit
+)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption
 
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+
 @dataclass
 class SimInputConfig:
-    parallel_data: pathlib.Path = None
-    perp_data: pathlib.Path = None
-    ss_data: pathlib.Path = None
-    pp_data: pathlib.Path = None
-    sp_data: pathlib.Path = None
-    ps_data: pathlib.Path = None
-    geometry: str = 'Transmission' 
-    channels: List[str] = '||'
-    source: str = 'Electric Dipole'
-    sys: str = 'Triclinic'
-    plane: str = '001'
+    geometry: str = 'trans'                                                                         #['trans', 'refl']
+    channels: List[Tuple[str, pathlib.Path]] = field(default_factory=lambda: [('para', None)])      #[('channel', 'data_for_this_channel'), ...]
+    source: str = 'e_dip'                                                                           #['e_dip', 'e_quad', 'm_dip']
+    sys: str = 'triclinic'                                                                          #['triclinic', 'monoclinic', 'orthorhombic', 'tetragonal', 'trigonal', 'hexagonal', 'cubic']
+    plane: str = '001'                                                                              #['001', 'rotz90']
 
 class SimulationResults(QWidget):
-    def __init__(self, parent=None, script_dir=pathlib.Path(__file__).parent.resolve()) -> None:
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Simulation")
         self.layout = QGridLayout()
@@ -30,7 +30,7 @@ class SimulationResults(QWidget):
         self.setLayout(self.layout)
 
 class SimulationWindow(QWidget): 
-    def __init__(self, parent=None, script_dir=pathlib.Path(__file__).parent.resolve()) -> None:
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Simulation")
         
@@ -84,10 +84,11 @@ class SimulationWindow(QWidget):
         self.upload_group = QButtonGroup()
         self.data_button_group.setExclusive(False)
         self.data_files = [None] * 6
-        j = 0
-        for i in self.channels: 
+        button_id = 0
+        for chan in self.channels: 
             self.d_chan_layout = QHBoxLayout()
-            self.box = QCheckBox(f"{i}")
+            self.box = QCheckBox(f"{chan}")
+
             self.text = QTextEdit(self)
             self.text.setReadOnly(True)
             self.font_metrics = QFontMetrics(self.text.font())
@@ -95,22 +96,25 @@ class SimulationWindow(QWidget):
             self.text.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.text.setWordWrapMode(QTextOption.WrapMode.NoWrap)
             self.text.setFixedSize(300, self.line_height + 15)
+
             self.upload = QPushButton("...")
             self.upload.clicked.connect(self.upload_files)
             self.upload_group.addButton(self.upload)
-            self.upload_group.setId(self.upload, j)
+            self.upload_group.setId(self.upload, button_id)
 
             self.d_chan_layout.addWidget(self.box)
             self.d_chan_layout.addWidget(self.text)
             self.d_chan_layout.addWidget(self.upload)
 
-            self.data_button_group.addButton(self.box)  
+            self.data_button_group.addButton(self.box) 
+            self.data_button_group.setId(self.box, button_id)
+
             self.data_layout.addLayout(self.d_chan_layout)
-            j = j+1
+            button_id = button_id+1
            
         self.prev_label = QLabel("Preview")
         self.prev_img = QLabel(self)
-        self.img_pixmap = QPixmap(f"{script_dir}/imgs/prev.png")
+        self.img_pixmap = QPixmap(f"{SCRIPT_DIR}/imgs/prev.png")
         self.scaled_img = self.img_pixmap.scaled(200, 200)
         self.prev_img.setPixmap(self.scaled_img)
         self.data_layout.addWidget(self.prev_label)
@@ -118,47 +122,65 @@ class SimulationWindow(QWidget):
 
         self.geo_button_group = QButtonGroup()
         self.geo_button_group.setExclusive(True)
-        for i in self.geos:
-            self.box = QRadioButton(f"{i}")
+        button_id = 0
+        for geo in self.geos:
+            self.box = QRadioButton(f"{geo}")
             self.geo_layout.addWidget(self.box)
             self.geo_button_group.addButton(self.box)
+            self.geo_button_group.setId(self.box, button_id)
             self.box.toggled.connect(self.geo_button_clicked)
+            button_id = button_id + 1
         
         self.chan_button_group = QButtonGroup()
         self.chan_button_group.setExclusive(False)
-        for i in self.channels:
-            self.box = QCheckBox(f"{i}")
+        button_id = 0
+        for chan in self.channels:
+            self.box = QCheckBox(f"{chan}")
             self.chan_layout.addWidget(self.box)
             self.chan_button_group.addButton(self.box)
+            self.chan_button_group.setId(self.box, button_id)
+            button_id = button_id + 1
         
         self.source_button_group = QButtonGroup()
         self.source_button_group.setExclusive(True)
-        for i in self.sources:
-            self.box = QRadioButton(f"{i}")
+        button_id = 0
+        for source in self.sources:
+            self.box = QRadioButton(f"{source}")
             self.source_layout.addWidget(self.box)
             self.source_button_group.addButton(self.box)
+            self.source_button_group.setId(self.box, button_id)
+            button_id = button_id + 1
         
         self.sys_button_group = QButtonGroup()
         self.sys_button_group.setExclusive(True)
-        for i in self.systems:
-            self.box = QRadioButton(f"{i}")
+        button_id = 0
+        for sys in self.systems:
+            self.box = QRadioButton(f"{sys}")
             self.sys_layout.addWidget(self.box)
             self.sys_button_group.addButton(self.box)
+            self.sys_button_group.setId(self.box, button_id)
+            button_id = button_id + 1
         
         self.lat_button_group = QButtonGroup()
         self.lat_button_group.setExclusive(True)
-        for i in self.planes:
-            self.box = QRadioButton(f"{i}")
+        button_id = 0
+        for plane in self.planes:
+            self.box = QRadioButton(f"{plane}")
             self.lat_layout.addWidget(self.box)
             self.lat_button_group.addButton(self.box)
+            self.lat_button_group.setId(self.box, button_id)
+            button_id = button_id + 1
 
         self.confirm_button_group = QButtonGroup()
         self.confirm_button_group.setExclusive(False)
-        for i in self.confirms:
-            self.box = QCheckBox(f"{i}")
+        button_id = 0
+        for confirm in self.confirms:
+            self.box = QCheckBox(f"{confirm}")
             self.confirm_layout.addWidget(self.box)
             self.confirm_button_group.addButton(self.box)
+            self.confirm_button_group.setId(self.box, button_id)
             self.box.toggled.connect(self.confirm_button_clicked)
+            button_id = button_id + 1
         
         self.run_button = QPushButton("Run")
         self.run_button.clicked.connect(self.run_sim)
@@ -176,7 +198,6 @@ class SimulationWindow(QWidget):
         
         self.import_layout.addLayout(self.data_layout, 0, 0)
         self.import_layout.addLayout(self.config_layout, 0, 1)
-        self.import_layout.addWidget(self.run_button, 1, 1)
         
         self.layout.addLayout(self.import_layout)
 
@@ -187,120 +208,106 @@ class SimulationWindow(QWidget):
     def upload_files(self) -> None:
         button = self.sender()
         button_id = self.upload_group.id(button)
-        horzonatal_layout = self.data_layout.itemAt(button_id+2).layout()
-        text_box = horzonatal_layout.itemAt(1).widget()
+        text_box = self.data_layout.itemAt(button_id+2).layout().itemAt(1).widget()
         file = QFileDialog.getOpenFileNames(self, 'Open file')[0]
         text_box.clear()
         try:
             text_box.setText(file[0]) 
             self.data_files[button_id] = file[0]
         except IndexError:
-            pass
+            self.data_files[button_id] = None
 
     def geo_button_clicked(self) -> None:
-        current_select = self.geo_button_group.checkedButton().text()
-        data_buttons = self.data_button_group.buttons()
-        chan_buttons = self.chan_button_group.buttons()
-        upload_buttons = self.upload_group.buttons()
-        total_itr_buttons = data_buttons + chan_buttons 
+        total_itr_buttons = self.data_button_group.buttons() + self.chan_button_group.buttons()
         i = 0
         for button in total_itr_buttons:
-            button_label = button.text()
-            if current_select == "Transmission":
-                if button_label in self.channels_reflec:
+            if self.geo_button_group.checkedButton().text() == "Transmission":
+                if button.text() in self.channels_reflec:
                     button.setChecked(False)
                     button.setEnabled(False)
                     if i < 6:
-                        horzonatal_layout = self.data_layout.itemAt(i+2).layout()
-                        text_box = horzonatal_layout.itemAt(1).widget()
+                        text_box = self.data_layout.itemAt(i+2).layout().itemAt(1).widget()
                         text_box.clear()
                         self.data_files[i] = None
-                        upload_buttons[i].setEnabled(False)
+                        self.upload_group.buttons()[i].setEnabled(False)
                 else:
                     button.setEnabled(True)
                     if i < 6:
-                        upload_buttons[i].setEnabled(True)
+                       self.upload_group.buttons()[i].setEnabled(True)
             else:
-                if button_label in self.channels_trans:
+                if button.text() in self.channels_trans:
                     button.setChecked(False)
                     button.setEnabled(False)
                     if i < 6:
-                        horzonatal_layout = self.data_layout.itemAt(i+2).layout()
-                        text_box = horzonatal_layout.itemAt(1).widget()
+                        text_box = self.data_layout.itemAt(i+2).layout().itemAt(1).widget()
                         text_box.clear()
                         self.data_files[i] = None
-                        upload_buttons[i].setEnabled(False)
+                        self.upload_group.buttons()[i].setEnabled(False)
                 else:
                     button.setEnabled(True)
                     if i < 6:
-                        upload_buttons[i].setEnabled(True)
+                        self.upload_group.buttons()[i].setEnabled(True)
             i = i+1
             
     def confirm_button_clicked(self) -> None:
-        confirm_buttons = self.confirm_button_group.buttons()
-        for button in confirm_buttons:
-            if button.isChecked() == False:
-                self.run_button.setEnabled(False)
-                return
-        self.run_button.setEnabled(True)
+        if all(i.isChecked() is True for i in self.confirm_button_group.buttons()):
+            self.run_button.setEnabled(True)
+            return
+        self.run_button.setEnabled(False)
 
-    def run_sim(self, checked) -> None:
+    def run_sim(self) -> None:
         self.run_button.setEnabled(False)
         config = self.get_current_inputs()
         if isinstance(config, SimInputConfig):
             self.win = SimulationResults()
             self.win.show()
+            print(config)
         else:
             self.error_win(message=config)
         self.run_button.setEnabled(True)
-
+    
     def valid_data_upload(self, config: SimInputConfig) -> bool:
         return True
 
+    def convert_to_config_str(self, gui_name: str) -> str:
+        name_scheme = {'||': 'para', '⊥': 'perp', 'Transmission': 'trans', 'Reflection': 'refl', 
+                       'Electric Dipole': 'e_dip', 'Electric Quadrupole': 'e_quad', 'Magnetic Dipole': 'm_dip', 
+                       '(0 0 1)': '001','Rotz(90°)': 'rotz90'}
+        try:
+            return name_scheme[f'{gui_name}']
+        except KeyError:
+            return gui_name.lower()
+
     def get_current_inputs(self) -> Union[SimInputConfig, str]:
         config = SimInputConfig()
-        chan_list = []
-        data_list = []
-        if all(elem is None for elem in self.data_files):
+        if all(i is None for i in self.data_files):
             return "No data files uploaded"
-        for button in self.chan_button_group.buttons():
-            if button.isChecked():
-                chan_list.append(button.text())
-        for button in self.data_button_group.buttons():
-            if button.isChecked():
-                data_list.append(button.text())
-        union = [elem for elem in data_list if elem in chan_list]
-        if not union:
-            return "Missing data and/or channel selection"
-        config.channels = union
+        selected_channels = [i.text() for i in self.chan_button_group.buttons() if i.isChecked()]
+        selected_data = [i.text() for i in self.data_button_group.buttons() if i.isChecked()]
+        valid_channels = [i for i in selected_data if i in selected_channels]
         if self.geo_button_group.checkedButton().text() == "Transmission":
-            if "||" in union:
-                config.parallel_data = self.data_files[0]
-            if "⊥" in union:
-                config.perp_data = self.data_files[1]
+            combined_list = [(self.convert_to_config_str(self.channels_trans[i]), self.data_files[i]) for i in range(2) 
+                if (self.data_files[i] is not None and self.channels_trans[i] in valid_channels)]
         else:
-            if "SS" in union:
-                config.ss_data = self.data_files[2]
-            if "PP" in union:
-                config.pp_data = self.data_files[3]
-            if "SP" in union:
-                config.sp_data = self.data_files[4]
-            if "PS" in union:
-                config.ps_data = self.data_files[5]
+            combined_list = [(self.convert_to_config_str(self.channels_reflec[i]), self.data_files[i+2]) for i in range(4) 
+                if (self.data_files[i+2] is not None and self.channels_reflec[i] in valid_channels)]
+        if not combined_list:
+            return "Missing data and/or channel selection"
+        config.channels = combined_list
         try:
-            config.geometry = self.geo_button_group.checkedButton().text()
+            config.geometry = self.convert_to_config_str(self.geo_button_group.checkedButton().text())
         except AttributeError:
             return "Missing geometry selection"
         try:
-            config.source = self.source_button_group.checkedButton().text()
+            config.source = self.convert_to_config_str(self.source_button_group.checkedButton().text())
         except AttributeError:
             return "Missing source selection"
         try:
-            config.sys = self.sys_button_group.checkedButton().text()
+            config.sys = self.convert_to_config_str(self.sys_button_group.checkedButton().text())
         except AttributeError:
             return "Missing system selection"
         try:
-            config.plane = self.lat_button_group.checkedButton().text()
+            config.plane = self.convert_to_config_str(self.lat_button_group.checkedButton().text())
         except AttributeError:
             return "Missing lattice plane selection"
         if self.valid_data_upload(config=config) == False:
@@ -315,12 +322,12 @@ class SimulationWindow(QWidget):
         self.error.show()
 
 class FittingWindow(QWidget):
-    def __init__(self, parent=None, script_dir=pathlib.Path(__file__).parent.resolve()):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Fitting")
 
 class MainWindow(QMainWindow):
-    def __init__(self, parent=None, script_dir=pathlib.Path(__file__).parent.resolve()) -> None:
+    def __init__(self, parent=None) -> None:
         super().__init__(parent) 
         self.setWindowTitle("SHG")     
 
@@ -348,11 +355,11 @@ class MainWindow(QMainWindow):
 
         self.setFixedSize(self.layout.sizeHint())
         
-    def show_simulation_window(self, checked) -> None:
+    def show_simulation_window(self) -> None:
         self.win = SimulationWindow()
         self.win.show()
 
-    def show_fitting_window(self, checked) -> None:
+    def show_fitting_window(self) -> None:
         self.win = FittingWindow()
         self.win.show()
 

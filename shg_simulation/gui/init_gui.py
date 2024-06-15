@@ -14,5 +14,5 @@ def main():
         #startup_linux()
         startup_mac()
     else: 
-        print(f"Version {pkg_resources.get_distribution('shg_gui').version} of SHG Simulation Package is not supported on this operating system."+
+        print(f"Version {pkg_resources.get_distribution('shg_simulation').version} of SHG Simulation Package is not supported on this operating system."+
             "\nSupported operating systems: Windows, macOS, and Linux.")
