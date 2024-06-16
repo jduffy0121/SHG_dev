@@ -4,8 +4,8 @@ from typing import List, Union, Tuple
 from dataclasses import dataclass, field
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, 
-    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QLineEdit, QMessageBox, 
-    QRadioButton, QButtonGroup, QFileDialog, QTextEdit
+    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, 
+    QRadioButton, QButtonGroup, QTextEdit
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption
@@ -37,174 +37,193 @@ class SimulationWindow(QWidget):
         self.layout = QVBoxLayout()
         self.import_layout = QGridLayout()
 
-        self.data_layout = QVBoxLayout()
-        self.geo_layout = QVBoxLayout()
-        self.chan_layout = QVBoxLayout()
-        self.source_layout = QVBoxLayout()
-        self.sys_layout = QVBoxLayout()
-        self.lat_layout = QVBoxLayout()
-        self.confirm_layout = QVBoxLayout()
-
         self.header_label = QLabel("Please import your data:")
         self.layout.addWidget(self.header_label)
-        
-        self.data_label = QLabel("Import Data")
-        self.data_sub_label = QLabel("Please select file location(s)")
-        self.data_layout.addWidget(self.data_label)
-        self.data_layout.addWidget(self.data_sub_label)
-
-        self.geo_label = QLabel("Geometry")
-        self.geo_layout.addWidget(self.geo_label)
-
-        self.chan_label = QLabel("Channels")
-        self.chan_layout.addWidget(self.chan_label)
-
-        self.source_label = QLabel("Source")
-        self.source_layout.addWidget(self.source_label)
-
-        self.sys_label = QLabel("System")
-        self.sys_layout.addWidget(self.sys_label)
-
-        self.lat_label = QLabel("Lattice Plane")
-        self.lat_layout.addWidget(self.lat_label)
-
-        self.confirm_label = QLabel("Confirmation")
-        self.confirm_layout.addWidget(self.confirm_label)
 
         self.channels_trans = ["||", "⊥"]
         self.channels_reflec = ["SS", "PP", "SP", "PS"]
-        self.channels = self.channels_trans + self.channels_reflec
         self.geos = ["Transmission", "Reflection"]
         self.sources = ["Electric Dipole", "Electric Quadrupole", "Magnetic Dipole"]
         self.systems = ["Triclinic", "Monoclinic", "Orthorhombic", "Tetragonal", "Trigonal", "Hexagonal", "Cubic"]
         self.planes = ["(0 0 1)", "Rotz(90°)"]
         self.confirms = ["Geometry", "Channels", "Source", "System", "Lattice Plane"]
-       
-        self.data_button_group = QButtonGroup()
-        self.upload_group = QButtonGroup()
-        self.data_button_group.setExclusive(False)
+        self.channels = self.channels_trans + self.channels_reflec
+
         self.data_files = [None] * 6
-        button_id = 0
-        for chan in self.channels: 
-            self.d_chan_layout = QHBoxLayout()
-            self.box = QCheckBox(f"{chan}")
 
-            self.text = QTextEdit(self)
-            self.text.setReadOnly(True)
-            self.font_metrics = QFontMetrics(self.text.font())
-            self.line_height = self.font_metrics.lineSpacing()
-            self.text.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            self.text.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-            self.text.setFixedSize(300, self.line_height + 15)
-
-            self.upload = QPushButton("...")
-            self.upload.clicked.connect(self.upload_files)
-            self.upload_group.addButton(self.upload)
-            self.upload_group.setId(self.upload, button_id)
-
-            self.d_chan_layout.addWidget(self.box)
-            self.d_chan_layout.addWidget(self.text)
-            self.d_chan_layout.addWidget(self.upload)
-
-            self.data_button_group.addButton(self.box) 
-            self.data_button_group.setId(self.box, button_id)
-
-            self.data_layout.addLayout(self.d_chan_layout)
-            button_id = button_id+1
-           
-        self.prev_label = QLabel("Preview")
-        self.prev_img = QLabel(self)
-        self.img_pixmap = QPixmap(f"{SCRIPT_DIR}/imgs/prev.png")
-        self.scaled_img = self.img_pixmap.scaled(200, 200)
-        self.prev_img.setPixmap(self.scaled_img)
-        self.data_layout.addWidget(self.prev_label)
-        self.data_layout.addWidget(self.prev_img)
-
-        self.geo_button_group = QButtonGroup()
-        self.geo_button_group.setExclusive(True)
-        button_id = 0
-        for geo in self.geos:
-            self.box = QRadioButton(f"{geo}")
-            self.geo_layout.addWidget(self.box)
-            self.geo_button_group.addButton(self.box)
-            self.geo_button_group.setId(self.box, button_id)
-            self.box.toggled.connect(self.geo_button_clicked)
-            button_id = button_id + 1
-        
-        self.chan_button_group = QButtonGroup()
-        self.chan_button_group.setExclusive(False)
-        button_id = 0
-        for chan in self.channels:
-            self.box = QCheckBox(f"{chan}")
-            self.chan_layout.addWidget(self.box)
-            self.chan_button_group.addButton(self.box)
-            self.chan_button_group.setId(self.box, button_id)
-            button_id = button_id + 1
-        
-        self.source_button_group = QButtonGroup()
-        self.source_button_group.setExclusive(True)
-        button_id = 0
-        for source in self.sources:
-            self.box = QRadioButton(f"{source}")
-            self.source_layout.addWidget(self.box)
-            self.source_button_group.addButton(self.box)
-            self.source_button_group.setId(self.box, button_id)
-            button_id = button_id + 1
-        
-        self.sys_button_group = QButtonGroup()
-        self.sys_button_group.setExclusive(True)
-        button_id = 0
-        for sys in self.systems:
-            self.box = QRadioButton(f"{sys}")
-            self.sys_layout.addWidget(self.box)
-            self.sys_button_group.addButton(self.box)
-            self.sys_button_group.setId(self.box, button_id)
-            button_id = button_id + 1
-        
-        self.lat_button_group = QButtonGroup()
-        self.lat_button_group.setExclusive(True)
-        button_id = 0
-        for plane in self.planes:
-            self.box = QRadioButton(f"{plane}")
-            self.lat_layout.addWidget(self.box)
-            self.lat_button_group.addButton(self.box)
-            self.lat_button_group.setId(self.box, button_id)
-            button_id = button_id + 1
-
-        self.confirm_button_group = QButtonGroup()
-        self.confirm_button_group.setExclusive(False)
-        button_id = 0
-        for confirm in self.confirms:
-            self.box = QCheckBox(f"{confirm}")
-            self.confirm_layout.addWidget(self.box)
-            self.confirm_button_group.addButton(self.box)
-            self.confirm_button_group.setId(self.box, button_id)
-            self.box.toggled.connect(self.confirm_button_clicked)
-            button_id = button_id + 1
-        
         self.run_button = QPushButton("Run")
         self.run_button.clicked.connect(self.run_sim)
         self.run_button.setEnabled(False)
 
-        self.config_layout = QGridLayout()
+        self.data_layout, self.data_button_group, self.upload_group = self.win_create_data_layer_group()
+        self.geo_layout, self.geo_button_group = self.win_create_geo_layer_group()
+        self.chan_layout, self.chan_button_group = self.win_create_chan_layer_group()
+        self.source_layout, self.source_button_group = self.win_create_source_layer_group()
+        self.sys_layout, self.sys_button_group = self.win_create_sys_layer_group()
+        self.lat_layout, self.lat_button_group = self.win_create_sys_layer_group()
+        self.confirm_layout, self.confirm_button_group = self.win_create_confirm_layer_group()
+        self.config_layout = self.win_create_config_layer_group()
 
-        self.config_layout.addLayout(self.geo_layout, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        self.config_layout.addLayout(self.chan_layout, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
-        self.config_layout.addLayout(self.source_layout, 0, 2, alignment=Qt.AlignmentFlag.AlignTop)
-        self.config_layout.addLayout(self.sys_layout, 1, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        self.config_layout.addLayout(self.lat_layout, 1, 1, alignment=Qt.AlignmentFlag.AlignTop)
-        self.config_layout.addLayout(self.confirm_layout, 1, 2, alignment=Qt.AlignmentFlag.AlignTop)
-        self.config_layout.addWidget(self.run_button, 2, 2)
-        
         self.import_layout.addLayout(self.data_layout, 0, 0)
         self.import_layout.addLayout(self.config_layout, 0, 1)
         
         self.layout.addLayout(self.import_layout)
-
         self.setLayout(self.layout)
 
         self.setFixedSize(self.layout.sizeHint())
-    
+
+    def win_create_data_layer_group(self) -> (QVBoxLayout(), QButtonGroup(), QButtonGroup()):
+        layout = QVBoxLayout()
+        label = QLabel("Import Data")
+        sub_label = QLabel("Please select file location(s)")
+        layout.addWidget(label)
+        layout.addWidget(sub_label)
+        
+        data_button_group = QButtonGroup()
+        upload_group = QButtonGroup()
+        data_button_group.setExclusive(False)
+
+        button_id = 0
+        for chan in self.channels: 
+            d_chan_layout = QHBoxLayout()
+            box = QCheckBox(f"{chan}")
+
+            text = QTextEdit(self)
+            text.setReadOnly(True)
+            font_metrics = QFontMetrics(text.font())
+            line_height = font_metrics.lineSpacing()
+            text.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            text.setWordWrapMode(QTextOption.WrapMode.NoWrap)
+            text.setFixedSize(300, line_height + 15)
+
+            upload = QPushButton("...")
+            upload.clicked.connect(self.upload_files)
+            upload_group.addButton(upload)
+            upload_group.setId(upload, button_id)
+
+            d_chan_layout.addWidget(box)
+            d_chan_layout.addWidget(text)
+            d_chan_layout.addWidget(upload)
+
+            data_button_group.addButton(box) 
+            data_button_group.setId(box, button_id)
+
+            layout.addLayout(d_chan_layout)
+            button_id = button_id+1
+           
+        prev_label = QLabel("Preview")
+        prev_img = QLabel(self)
+        img_pixmap = QPixmap(f"{SCRIPT_DIR}/imgs/prev.png")
+        scaled_img = img_pixmap.scaled(200, 200)
+        prev_img.setPixmap(scaled_img)
+        layout.addWidget(prev_label)
+        layout.addWidget(prev_img)
+
+        return layout, data_button_group, upload_group
+
+    def win_create_geo_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
+        layout = QVBoxLayout()
+        label = QLabel("Geometry")
+        layout.addWidget(label)
+        button_group = QButtonGroup()
+        button_group.setExclusive(True)
+        button_id = 0
+        for geo in self.geos:
+            box = QRadioButton(f"{geo}")
+            layout.addWidget(box)
+            button_group.addButton(box)
+            button_group.setId(box, button_id)
+            box.toggled.connect(self.geo_button_clicked)
+            button_id = button_id + 1
+        return layout, button_group
+
+    def win_create_chan_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
+        layout = QVBoxLayout()
+        label = QLabel("Channels")
+        layout.addWidget(label)
+        button_group = QButtonGroup()
+        button_group.setExclusive(False)
+        button_id = 0
+        for chan in self.channels:
+            box = QCheckBox(f"{chan}")
+            layout.addWidget(box)
+            button_group.addButton(box)
+            button_group.setId(box, button_id)
+            button_id = button_id + 1
+        return layout, button_group
+
+    def win_create_source_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
+        layout = QVBoxLayout()
+        label = QLabel("Source")
+        layout.addWidget(label)
+        button_group = QButtonGroup()
+        button_group.setExclusive(True)
+        button_id = 0
+        for source in self.sources:
+            box = QRadioButton(f"{source}")
+            layout.addWidget(box)
+            button_group.addButton(box)
+            button_group.setId(box, button_id)
+            button_id = button_id + 1
+        return layout, button_group
+
+    def win_create_sys_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
+        layout = QVBoxLayout()
+        label = QLabel("System")
+        layout.addWidget(label)
+        button_group = QButtonGroup()
+        button_group.setExclusive(True)
+        button_id = 0
+        for sys in self.systems:
+            box = QRadioButton(f"{sys}")
+            layout.addWidget(box)
+            button_group.addButton(box)
+            button_group.setId(box, button_id)
+            button_id = button_id + 1
+        return layout, button_group
+
+    def win_create_plane_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
+        layout = QVBoxLayout()
+        label = QLabel("Lattice Plane")
+        layout.addWidget(label)
+        button_group = QButtonGroup()
+        button_group.setExclusive(True)
+        button_id = 0
+        for plane in self.planes:
+            box = QRadioButton(f"{plane}")
+            layout.addWidget(box)
+            button_group.addButton(box)
+            button_group.setId(box, button_id)
+            button_id = button_id + 1
+        return layout, button_group
+
+    def win_create_confirm_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
+        layout = QVBoxLayout()
+        label = QLabel("Confirmation")
+        layout.addWidget(label)
+        button_group = QButtonGroup()
+        button_group.setExclusive(False)
+        button_id = 0
+        for confirm in self.confirms:
+            box = QCheckBox(f"{confirm}")
+            layout.addWidget(box)
+            button_group.addButton(box)
+            button_group.setId(box, button_id)
+            box.toggled.connect(self.confirm_button_clicked)
+            button_id = button_id + 1
+        return layout, button_group
+
+    def win_create_config_layer_group(self) -> QGridLayout():
+        layout = QGridLayout()
+        layout.addLayout(self.geo_layout, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(self.chan_layout, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(self.source_layout, 0, 2, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(self.sys_layout, 1, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(self.lat_layout, 1, 1, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(self.confirm_layout, 1, 2, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.run_button, 2, 2)
+        return layout
+
     def upload_files(self) -> None:
         button = self.sender()
         button_id = self.upload_group.id(button)
@@ -247,7 +266,7 @@ class SimulationWindow(QWidget):
                     button.setEnabled(True)
                     if i < 6:
                         self.upload_group.buttons()[i].setEnabled(True)
-            i = i+1
+            i = i + 1
             
     def confirm_button_clicked(self) -> None:
         if all(i.isChecked() is True for i in self.confirm_button_group.buttons()):
