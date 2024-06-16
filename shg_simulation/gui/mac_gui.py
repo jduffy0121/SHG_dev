@@ -60,7 +60,7 @@ class SimulationWindow(QWidget):
         self.chan_layout, self.chan_button_group = self.win_create_chan_layer_group()
         self.source_layout, self.source_button_group = self.win_create_source_layer_group()
         self.sys_layout, self.sys_button_group = self.win_create_sys_layer_group()
-        self.lat_layout, self.lat_button_group = self.win_create_sys_layer_group()
+        self.lat_layout, self.lat_button_group = self.win_create_plane_layer_group()
         self.confirm_layout, self.confirm_button_group = self.win_create_confirm_layer_group()
         self.config_layout = self.win_create_config_layer_group()
 
