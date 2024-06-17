@@ -55,13 +55,24 @@ class SimulationWindow(QWidget):
         self.run_button.clicked.connect(self.run_sim)
         self.run_button.setEnabled(False)
 
+        self.back_button = QPushButton("Back")
+        self.back_button.clicked.connect(self.back_to_main)
+
         self.data_layout, self.data_button_group, self.upload_group = self.win_create_data_layer_group()
-        self.geo_layout, self.geo_button_group = self.win_create_geo_layer_group()
-        self.chan_layout, self.chan_button_group = self.win_create_chan_layer_group()
-        self.source_layout, self.source_button_group = self.win_create_source_layer_group()
-        self.sys_layout, self.sys_button_group = self.win_create_sys_layer_group()
-        self.lat_layout, self.lat_button_group = self.win_create_plane_layer_group()
-        self.confirm_layout, self.confirm_button_group = self.win_create_confirm_layer_group()
+        self.geo_layout, self.geo_button_group = self.win_create_new_layer(list_itr=self.geos,
+                                                                           text_label="Geometry")
+        self.chan_layout, self.chan_button_group = self.win_create_new_layer(list_itr=self.channels,
+                                                                             text_label="Channels",
+                                                                             exclusive=False)
+        self.source_layout, self.source_button_group = self.win_create_new_layer(list_itr=self.systems,
+                                                                                 text_label="System") 
+        self.sys_layout, self.sys_button_group = self.win_create_new_layer(list_itr=self.systems,
+                                                                           text_label="System")
+        self.lat_layout, self.lat_button_group = self.win_create_new_layer(list_itr=self.planes,
+                                                                           text_label="Lattice Plane")
+        self.confirm_layout, self.confirm_button_group = self.win_create_new_layer(list_itr=self.confirms,
+                                                                                   text_label="Confirmation", 
+                                                                                   exclusive=False)
         self.config_layout = self.win_create_config_layer_group()
 
         self.import_layout.addLayout(self.data_layout, 0, 0)
@@ -121,96 +132,27 @@ class SimulationWindow(QWidget):
 
         return layout, data_button_group, upload_group
 
-    def win_create_geo_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
+    def win_create_new_layer(self, list_itr: List[str], 
+                             text_label: str, exclusive: bool=True) -> (QVBoxLayout(), QButtonGroup()):
         layout = QVBoxLayout()
-        label = QLabel("Geometry")
+        label = QLabel(f"{text_label}")
         layout.addWidget(label)
         button_group = QButtonGroup()
-        button_group.setExclusive(True)
+        button_group.setExclusive(exclusive)
         button_id = 0
-        for geo in self.geos:
-            box = QRadioButton(f"{geo}")
-            layout.addWidget(box)
-            button_group.addButton(box)
-            button_group.setId(box, button_id)
-            box.toggled.connect(self.geo_button_clicked)
+        for button_label in list_itr:
+            if exclusive:
+                button = QRadioButton(f"{button_label}")
+            else:
+                button = QCheckBox(f"{button_label}")
+            layout.addWidget(button)
+            button_group.addButton(button)
+            button_group.setId(button, button_id)
             button_id = button_id + 1
-        return layout, button_group
-
-    def win_create_chan_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
-        layout = QVBoxLayout()
-        label = QLabel("Channels")
-        layout.addWidget(label)
-        button_group = QButtonGroup()
-        button_group.setExclusive(False)
-        button_id = 0
-        for chan in self.channels:
-            box = QCheckBox(f"{chan}")
-            layout.addWidget(box)
-            button_group.addButton(box)
-            button_group.setId(box, button_id)
-            button_id = button_id + 1
-        return layout, button_group
-
-    def win_create_source_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
-        layout = QVBoxLayout()
-        label = QLabel("Source")
-        layout.addWidget(label)
-        button_group = QButtonGroup()
-        button_group.setExclusive(True)
-        button_id = 0
-        for source in self.sources:
-            box = QRadioButton(f"{source}")
-            layout.addWidget(box)
-            button_group.addButton(box)
-            button_group.setId(box, button_id)
-            button_id = button_id + 1
-        return layout, button_group
-
-    def win_create_sys_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
-        layout = QVBoxLayout()
-        label = QLabel("System")
-        layout.addWidget(label)
-        button_group = QButtonGroup()
-        button_group.setExclusive(True)
-        button_id = 0
-        for sys in self.systems:
-            box = QRadioButton(f"{sys}")
-            layout.addWidget(box)
-            button_group.addButton(box)
-            button_group.setId(box, button_id)
-            button_id = button_id + 1
-        return layout, button_group
-
-    def win_create_plane_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
-        layout = QVBoxLayout()
-        label = QLabel("Lattice Plane")
-        layout.addWidget(label)
-        button_group = QButtonGroup()
-        button_group.setExclusive(True)
-        button_id = 0
-        for plane in self.planes:
-            box = QRadioButton(f"{plane}")
-            layout.addWidget(box)
-            button_group.addButton(box)
-            button_group.setId(box, button_id)
-            button_id = button_id + 1
-        return layout, button_group
-
-    def win_create_confirm_layer_group(self) -> (QVBoxLayout(), QButtonGroup()):
-        layout = QVBoxLayout()
-        label = QLabel("Confirmation")
-        layout.addWidget(label)
-        button_group = QButtonGroup()
-        button_group.setExclusive(False)
-        button_id = 0
-        for confirm in self.confirms:
-            box = QCheckBox(f"{confirm}")
-            layout.addWidget(box)
-            button_group.addButton(box)
-            button_group.setId(box, button_id)
-            box.toggled.connect(self.confirm_button_clicked)
-            button_id = button_id + 1
+            if text_label == "Geometry":
+                button.toggled.connect(self.geo_button_clicked)
+            elif text_label == "Confirmation":
+                button.toggled.connect(self.confirm_button_clicked)
         return layout, button_group
 
     def win_create_config_layer_group(self) -> QGridLayout():
@@ -222,6 +164,7 @@ class SimulationWindow(QWidget):
         layout.addLayout(self.lat_layout, 1, 1, alignment=Qt.AlignmentFlag.AlignTop)
         layout.addLayout(self.confirm_layout, 1, 2, alignment=Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.run_button, 2, 2)
+        layout.addWidget(self.back_button, 2, 1)
         return layout
 
     def upload_files(self) -> None:
@@ -237,9 +180,8 @@ class SimulationWindow(QWidget):
             self.data_files[button_id] = None
 
     def geo_button_clicked(self) -> None:
-        total_itr_buttons = self.data_button_group.buttons() + self.chan_button_group.buttons()
         i = 0
-        for button in total_itr_buttons:
+        for button in self.data_button_group.buttons() + self.chan_button_group.buttons():
             if self.geo_button_group.checkedButton().text() == "Transmission":
                 if button.text() in self.channels_reflec:
                     button.setChecked(False)
@@ -301,6 +243,10 @@ class SimulationWindow(QWidget):
         config = SimInputConfig()
         if all(i is None for i in self.data_files):
             return "No data files uploaded"
+        try:
+            config.geometry = self.convert_to_config_str(self.geo_button_group.checkedButton().text())
+        except AttributeError:
+            return "Missing geometry selection"
         selected_channels = [i.text() for i in self.chan_button_group.buttons() if i.isChecked()]
         selected_data = [i.text() for i in self.data_button_group.buttons() if i.isChecked()]
         valid_channels = [i for i in selected_data if i in selected_channels]
@@ -313,10 +259,6 @@ class SimulationWindow(QWidget):
         if not combined_list:
             return "Missing data and/or channel selection"
         config.channels = combined_list
-        try:
-            config.geometry = self.convert_to_config_str(self.geo_button_group.checkedButton().text())
-        except AttributeError:
-            return "Missing geometry selection"
         try:
             config.source = self.convert_to_config_str(self.source_button_group.checkedButton().text())
         except AttributeError:
@@ -339,6 +281,11 @@ class SimulationWindow(QWidget):
         self.error.setWindowTitle("Unable to Continue")
         self.error.setText(f"Error: {message}.\nPlease try again.")
         self.error.show()
+
+    def back_to_main(self) -> None:
+        self.win = MainWindow()
+        self.win.show()
+        self.close()
 
 class FittingWindow(QWidget):
     def __init__(self, parent=None):
@@ -377,10 +324,12 @@ class MainWindow(QMainWindow):
     def show_simulation_window(self) -> None:
         self.win = SimulationWindow()
         self.win.show()
+        self.close()
 
     def show_fitting_window(self) -> None:
         self.win = FittingWindow()
         self.win.show()
+        #self.close()
 
 def startup_mac(): 
     app = QApplication(sys.argv)
