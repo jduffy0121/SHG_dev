@@ -1,11 +1,14 @@
 import sys
 import pathlib
+import os
+import pandas as pd
+import markdown
 from typing import List, Union, Tuple
 from dataclasses import dataclass, field
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, 
     QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, 
-    QRadioButton, QButtonGroup, QTextEdit
+    QRadioButton, QButtonGroup, QTextEdit, QTabWidget
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption
@@ -14,11 +17,55 @@ SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
 
 @dataclass
 class SimInputConfig:
-    geometry: str = 'trans'                                                                         #['trans', 'refl']
-    channels: List[Tuple[str, pathlib.Path]] = field(default_factory=lambda: [('para', None)])      #[('channel', 'data_for_this_channel'), ...]
-    source: str = 'e_dip'                                                                           #['e_dip', 'e_quad', 'm_dip']
-    sys: str = 'triclinic'                                                                          #['triclinic', 'monoclinic', 'orthorhombic', 'tetragonal', 'trigonal', 'hexagonal', 'cubic']
-    plane: str = '001'                                                                              #['001', 'rotz90']
+    geometry: str = 'trans'
+    channels: List[Tuple[str, List[Tuple[float, float]]]] = field(default_factory=lambda: [('parallel', None)])
+    source: str = 'e_dip'
+    sys: str = 'triclinic'
+    plane: str = '001' 
+
+class HelpWindow(QWidget):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Infromation")
+        self.layout = QVBoxLayout()
+
+        self.tabs = QTabWidget()
+        self.tabs.setTabPosition(QTabWidget.TabPosition.North)
+        self.tabs.setMovable(False)
+
+        self.background_txt = QTextEdit()
+        self.sim_txt = QTextEdit()
+        self.about_txt = QTextEdit()
+        self.background_txt.setReadOnly(True)
+        self.sim_txt.setReadOnly(True)
+        self.about_txt.setReadOnly(True)
+        self.background_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.sim_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.about_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+
+        self.set_txt_files()
+
+        self.tabs.addTab(self.background_txt, "Physics Background")
+        self.tabs.addTab(self.sim_txt, "How to use Simulation")
+        self.tabs.addTab(self.about_txt, "About Us")
+        self.layout.addWidget(self.tabs)
+
+        self.setLayout(self.layout)
+
+        self.setFixedSize(self.layout.sizeHint())
+
+    def set_txt_files(self) -> None:
+        dir = [file for file in os.listdir(f'{SCRIPT_DIR}/ref_txt') if file[-3:] == '.md']
+        for readme_file in dir:
+            with open(f'{SCRIPT_DIR}/ref_txt/{readme_file}', 'r') as file:
+                html_format = markdown.markdown(file.read())
+                if readme_file == 'background.md':
+                    self.background_txt.setHtml(html_format)
+                elif readme_file == 'sim.md':
+                    self.sim_txt.setHtml(html_format)
+                else:
+                    self.about_txt.setHtml(html_format)
+            file.close()
 
 class SimulationResults(QWidget):
     def __init__(self, parent=None) -> None:
@@ -58,6 +105,9 @@ class SimulationWindow(QWidget):
         self.back_button = QPushButton("Back")
         self.back_button.clicked.connect(self.back_to_main)
 
+        self.help_button = QPushButton("Information")
+        self.help_button.clicked.connect(self.open_help_win)
+
         self.data_layout, self.data_button_group, self.upload_group = self.win_create_data_layer_group()
         self.geo_layout, self.geo_button_group = self.win_create_new_layer(list_itr=self.geos,
                                                                            text_label="Geometry")
@@ -80,6 +130,8 @@ class SimulationWindow(QWidget):
         
         self.layout.addLayout(self.import_layout)
         self.setLayout(self.layout)
+
+        self.help_win = None
 
         self.setFixedSize(self.layout.sizeHint())
 
@@ -165,13 +217,14 @@ class SimulationWindow(QWidget):
         layout.addLayout(self.confirm_layout, 1, 2, alignment=Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.run_button, 2, 2)
         layout.addWidget(self.back_button, 2, 1)
+        layout.addWidget(self.help_button, 2, 0)
         return layout
 
     def upload_files(self) -> None:
         button = self.sender()
         button_id = self.upload_group.id(button)
         text_box = self.data_layout.itemAt(button_id+2).layout().itemAt(1).widget()
-        file = QFileDialog.getOpenFileNames(self, 'Open file')[0]
+        file = QFileDialog.getOpenFileName(self, 'Open file', '','csv files (*.csv)')
         text_box.clear()
         try:
             text_box.setText(file[0]) 
@@ -220,18 +273,26 @@ class SimulationWindow(QWidget):
         self.run_button.setEnabled(False)
         config = self.get_current_inputs()
         if isinstance(config, SimInputConfig):
-            self.win = SimulationResults()
-            self.win.show()
+            self.results_win = SimulationResults()
+            self.results_win.show()
             print(config)
         else:
             self.error_win(message=config)
-        self.run_button.setEnabled(True)
-    
-    def valid_data_upload(self, config: SimInputConfig) -> bool:
-        return True
+        self.run_button.setEnabled(True)  
 
+    def read_data(self, data_path: pathlib.Path) -> Union[List[Tuple[float, float]], str]: 
+        try:
+            df = pd.read_csv(data_path) 
+            if df.shape[1] > 2:
+                return "Too many columns"
+            elif df.shape[1] < 2:
+                return "Too few columns"
+            return list(zip(df.iloc[:, 0], df.iloc[:, 1]))             
+        except pd.errors.EmptyDataError:
+            return "No data"
+    
     def convert_to_config_str(self, gui_name: str) -> str:
-        name_scheme = {'||': 'para', '⊥': 'perp', 'Transmission': 'trans', 'Reflection': 'refl', 
+        name_scheme = {'||': 'parallel', '⊥': 'perpendicular', 'Transmission': 'trans', 'Reflection': 'refl', 
                        'Electric Dipole': 'e_dip', 'Electric Quadrupole': 'e_quad', 'Magnetic Dipole': 'm_dip', 
                        '(0 0 1)': '001','Rotz(90°)': 'rotz90'}
         try:
@@ -241,7 +302,7 @@ class SimulationWindow(QWidget):
 
     def get_current_inputs(self) -> Union[SimInputConfig, str]:
         config = SimInputConfig()
-        if all(i is None for i in self.data_files):
+        if all(data is None for data in self.data_files):
             return "No data files uploaded"
         try:
             config.geometry = self.convert_to_config_str(self.geo_button_group.checkedButton().text())
@@ -251,13 +312,32 @@ class SimulationWindow(QWidget):
         selected_data = [i.text() for i in self.data_button_group.buttons() if i.isChecked()]
         valid_channels = [i for i in selected_data if i in selected_channels]
         if self.geo_button_group.checkedButton().text() == "Transmission":
-            combined_list = [(self.convert_to_config_str(self.channels_trans[i]), self.data_files[i]) for i in range(2) 
+            combined_list = [
+                (
+                    self.convert_to_config_str(self.channels_trans[i]), 
+                    self.read_data(self.data_files[i])
+                ) 
+                for i in range(2) 
                 if (self.data_files[i] is not None and self.channels_trans[i] in valid_channels)]
         else:
-            combined_list = [(self.convert_to_config_str(self.channels_reflec[i]), self.data_files[i+2]) for i in range(4) 
+            combined_list = [
+                (
+                    self.convert_to_config_str(self.channels_reflec[i]), 
+                    self.read_data(self.data_files[i+2])
+                )
+                for i in range(4) 
                 if (self.data_files[i+2] is not None and self.channels_reflec[i] in valid_channels)]
         if not combined_list:
             return "Missing data and/or channel selection"
+        no_data = [channel for channel, data in combined_list if data == "No data"]
+        too_many_columns = [channel for channel, data in combined_list if data == "Too many columns"]
+        too_few_columns = [channel for channel, data in combined_list if data == "Too few columns"]
+        if len(no_data) > 0:
+            return f"No data in uploaded file(s) for channel(s): {', '.join(no_data)}"
+        elif len(too_many_columns) > 0:
+            return f"Too many data columns in uploaded file(s) for channel(s): {', '.join(too_many_columns)}"
+        elif len(too_few_columns) > 0:
+            return f"Missing required data columns in uploaded file(s) for channel(s): {', '.join(no_data)}"        
         config.channels = combined_list
         try:
             config.source = self.convert_to_config_str(self.source_button_group.checkedButton().text())
@@ -271,21 +351,28 @@ class SimulationWindow(QWidget):
             config.plane = self.convert_to_config_str(self.lat_button_group.checkedButton().text())
         except AttributeError:
             return "Missing lattice plane selection"
-        if self.valid_data_upload(config=config) == False:
-            return "Unable to read data"
         return config
 
     def error_win(self, message: str) -> None:
         self.error = QMessageBox()
         self.error.setIcon(QMessageBox.Icon.Critical)
         self.error.setWindowTitle("Unable to Continue")
-        self.error.setText(f"Error: {message}.\nPlease try again.")
+        self.error.setText(f"Error: \'{message}\'.\nPlease try again.")
         self.error.show()
 
     def back_to_main(self) -> None:
         self.win = MainWindow()
         self.win.show()
         self.close()
+
+    def open_help_win(self) -> None:
+        self.help_win = HelpWindow()
+        self.help_win.show()
+
+    def closeEvent(self, event) -> None:
+        if self.help_win is not None and self.help_win.isVisible():
+            self.help_win.close()
+        event.accept()
 
 class FittingWindow(QWidget):
     def __init__(self, parent=None):
