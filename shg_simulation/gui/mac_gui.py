@@ -114,8 +114,8 @@ class SimulationWindow(QWidget):
         self.chan_layout, self.chan_button_group = self.win_create_new_layer(list_itr=self.channels,
                                                                              text_label="Channels",
                                                                              exclusive=False)
-        self.source_layout, self.source_button_group = self.win_create_new_layer(list_itr=self.systems,
-                                                                                 text_label="System") 
+        self.source_layout, self.source_button_group = self.win_create_new_layer(list_itr=self.sources,
+                                                                                 text_label="Source") 
         self.sys_layout, self.sys_button_group = self.win_create_new_layer(list_itr=self.systems,
                                                                            text_label="System")
         self.lat_layout, self.lat_button_group = self.win_create_new_layer(list_itr=self.planes,
@@ -124,13 +124,13 @@ class SimulationWindow(QWidget):
                                                                                    text_label="Confirmation", 
                                                                                    exclusive=False)
         self.config_layout = self.win_create_config_layer_group()
-
         self.import_layout.addLayout(self.data_layout, 0, 0)
         self.import_layout.addLayout(self.config_layout, 0, 1)
         
         self.layout.addLayout(self.import_layout)
         self.setLayout(self.layout)
-
+        
+        self.valid_channels = None
         self.help_win = None
 
         self.setFixedSize(self.layout.sizeHint())
@@ -150,6 +150,7 @@ class SimulationWindow(QWidget):
         for chan in self.channels: 
             d_chan_layout = QHBoxLayout()
             box = QCheckBox(f"{chan}")
+            box.clicked.connect(self.chan_button_clicked)
 
             text = QTextEdit(self)
             text.setReadOnly(True)
@@ -203,8 +204,10 @@ class SimulationWindow(QWidget):
             button_id = button_id + 1
             if text_label == "Geometry":
                 button.toggled.connect(self.geo_button_clicked)
-            elif text_label == "Confirmation":
-                button.toggled.connect(self.confirm_button_clicked)
+            elif text_label == "Channels":
+                button.toggled.connect(self.chan_button_clicked)
+            else:
+                button.toggled.connect(self.test_button_groups) 
         return layout, button_group
 
     def win_create_config_layer_group(self) -> QGridLayout():
@@ -226,48 +229,104 @@ class SimulationWindow(QWidget):
         text_box = self.data_layout.itemAt(button_id+2).layout().itemAt(1).widget()
         file = QFileDialog.getOpenFileName(self, 'Open file', '','csv files (*.csv)')
         text_box.clear()
-        try:
+        if not file[0]:
+            self.data_files[button_id] = None
+        else:
             text_box.setText(file[0]) 
             self.data_files[button_id] = file[0]
-        except IndexError:
-            self.data_files[button_id] = None
+        self.test_button_groups()
 
-    def geo_button_clicked(self) -> None:
+    def trans_button_clicked(self) -> None:
         i = 0
         for button in self.data_button_group.buttons() + self.chan_button_group.buttons():
-            if self.geo_button_group.checkedButton().text() == "Transmission":
-                if button.text() in self.channels_reflec:
-                    button.setChecked(False)
-                    button.setEnabled(False)
-                    if i < 6:
-                        text_box = self.data_layout.itemAt(i+2).layout().itemAt(1).widget()
-                        text_box.clear()
-                        self.data_files[i] = None
-                        self.upload_group.buttons()[i].setEnabled(False)
-                else:
-                    button.setEnabled(True)
-                    if i < 6:
-                       self.upload_group.buttons()[i].setEnabled(True)
+            if button.text() in self.channels_reflec:
+                button.setChecked(False)
+                button.setEnabled(False)
+                if i < 6:
+                    text_box = self.data_layout.itemAt(i+2).layout().itemAt(1).widget()
+                    text_box.clear()
+                    self.data_files[i] = None
+                    self.upload_group.buttons()[i].setEnabled(False)
             else:
-                if button.text() in self.channels_trans:
-                    button.setChecked(False)
-                    button.setEnabled(False)
-                    if i < 6:
-                        text_box = self.data_layout.itemAt(i+2).layout().itemAt(1).widget()
-                        text_box.clear()
-                        self.data_files[i] = None
-                        self.upload_group.buttons()[i].setEnabled(False)
-                else:
-                    button.setEnabled(True)
-                    if i < 6:
-                        self.upload_group.buttons()[i].setEnabled(True)
+                button.setEnabled(True)
+                if i < 6:
+                   self.upload_group.buttons()[i].setEnabled(True)
             i = i + 1
-            
-    def confirm_button_clicked(self) -> None:
-        if all(i.isChecked() is True for i in self.confirm_button_group.buttons()):
-            self.run_button.setEnabled(True)
+        self.geo_button_group.button(0).setChecked(True)
+
+    def refl_button_clicked(self) -> None:
+        i = 0
+        for button in self.data_button_group.buttons() + self.chan_button_group.buttons():
+            if button.text() in self.channels_trans:
+                button.setChecked(False)
+                button.setEnabled(False)
+                if i < 6:
+                    text_box = self.data_layout.itemAt(i+2).layout().itemAt(1).widget()
+                    text_box.clear()
+                    self.data_files[i] = None
+                    self.upload_group.buttons()[i].setEnabled(False)
+            else:
+                button.setEnabled(True)
+                if i < 6:
+                    self.upload_group.buttons()[i].setEnabled(True)
+            i = i + 1
+        self.geo_button_group.button(1).setChecked(True)
+
+    def geo_button_clicked(self) -> None:
+        if self.geo_button_group.checkedButton().text() == "Transmission":
+            self.trans_button_clicked()
+        elif self.geo_button_group.checkedButton().text() == "Reflection":
+            self.refl_button_clicked()
+        self.test_button_groups()
+
+    def chan_button_clicked(self) -> None:
+        button = self.sender()
+        button_id = max(self.data_button_group.id(button), self.chan_button_group.id(button))
+        if button.text() in self.channels_trans:
+            self.trans_button_clicked()
+        else:
+            self.refl_button_clicked()
+        if button.isChecked():
+            self.data_button_group.button(button_id).setChecked(True)
+            self.chan_button_group.button(button_id).setChecked(True)
+        else:
+            self.data_button_group.button(button_id).setChecked(False)
+            self.chan_button_group.button(button_id).setChecked(False)
+        self.test_button_groups()
+
+    def test_button_groups(self) -> None:
+        button_groups = [self.data_button_group, self.geo_button_group, self.chan_button_group, 
+                         self.source_button_group, self.sys_button_group, self.lat_button_group]
+        if all(data is None for data in self.data_files):
+            self.run_button.setEnabled(False)
             return
-        self.run_button.setEnabled(False)
+        if self.geo_button_group.button(0).isChecked():
+            selected_channels = [button.text() for button in self.chan_button_group.buttons() if button.isChecked()]
+            self.valid_channels = [
+                self.channels_trans[i] for i in range(2) 
+                if (self.data_files[i] is not None and self.channels_trans[i] in selected_channels)
+            ]
+            if not self.valid_channels:
+                self.run_button.setEnabled(False)
+                return
+        elif self.geo_button_group.button(1).isChecked():
+            selected_channels = [button.text() for button in self.chan_button_group.buttons() if button.isChecked()]
+            self.valid_channels = [
+                self.channels_reflec[i] for i in range(4) 
+                if (self.data_files[i+2] is not None and self.channels_reflec[i] in selected_channels)
+            ]
+            if not self.valid_channels:
+                self.run_button.setEnabled(False)
+                return
+        else:
+            self.run_button.setEnabled(False)
+            self.valid_channels = None
+            return
+        if (all(button_group.checkedButton() is not None for button_group in button_groups) 
+                and all(data is not None for data in self.data_files) == False):
+            self.run_button.setEnabled(True)
+        else:
+           self.run_button.setEnabled(False)
 
     def run_sim(self) -> None:
         self.run_button.setEnabled(False)
@@ -287,6 +346,13 @@ class SimulationWindow(QWidget):
                 return "Too many columns"
             elif df.shape[1] < 2:
                 return "Too few columns"
+            data_list = list(zip(df.iloc[:, 0], df.iloc[:, 1]))
+            for (x,y) in data_list:
+                try:
+                    if isinstance(float(x), float) == False or isinstance(float(y), float) == False:
+                        return "Incorrect dtype"
+                except ValueError:
+                    return "Incorrect dtype"
             return list(zip(df.iloc[:, 0], df.iloc[:, 1]))             
         except pd.errors.EmptyDataError:
             return "No data"
@@ -302,55 +368,43 @@ class SimulationWindow(QWidget):
 
     def get_current_inputs(self) -> Union[SimInputConfig, str]:
         config = SimInputConfig()
+
         if all(data is None for data in self.data_files):
             return "No data files uploaded"
         try:
             config.geometry = self.convert_to_config_str(self.geo_button_group.checkedButton().text())
         except AttributeError:
             return "Missing geometry selection"
-        selected_channels = [i.text() for i in self.chan_button_group.buttons() if i.isChecked()]
-        selected_data = [i.text() for i in self.data_button_group.buttons() if i.isChecked()]
-        valid_channels = [i for i in selected_data if i in selected_channels]
         if self.geo_button_group.checkedButton().text() == "Transmission":
             combined_list = [
-                (
-                    self.convert_to_config_str(self.channels_trans[i]), 
-                    self.read_data(self.data_files[i])
-                ) 
-                for i in range(2) 
-                if (self.data_files[i] is not None and self.channels_trans[i] in valid_channels)]
+                (self.convert_to_config_str(self.channels_trans[i]), self.read_data(self.data_files[i])) 
+                for i in range(2) if (self.channels_trans[i] in self.valid_channels)
+            ]
         else:
             combined_list = [
-                (
-                    self.convert_to_config_str(self.channels_reflec[i]), 
-                    self.read_data(self.data_files[i+2])
-                )
-                for i in range(4) 
-                if (self.data_files[i+2] is not None and self.channels_reflec[i] in valid_channels)]
-        if not combined_list:
-            return "Missing data and/or channel selection"
+                (self.convert_to_config_str(self.channels_reflec[i]), self.read_data(self.data_files[i+2]))
+                for i in range(4) if (self.channels_reflec[i] in self.valid_channels)
+            ]
+    
         no_data = [channel for channel, data in combined_list if data == "No data"]
         too_many_columns = [channel for channel, data in combined_list if data == "Too many columns"]
         too_few_columns = [channel for channel, data in combined_list if data == "Too few columns"]
+        incorrect_types = [channel for channel, data in combined_list if data == "Incorrect dtype"]
+
         if len(no_data) > 0:
             return f"No data in uploaded file(s) for channel(s): {', '.join(no_data)}"
         elif len(too_many_columns) > 0:
             return f"Too many data columns in uploaded file(s) for channel(s): {', '.join(too_many_columns)}"
         elif len(too_few_columns) > 0:
-            return f"Missing required data columns in uploaded file(s) for channel(s): {', '.join(no_data)}"        
+            return f"Missing required data columns in uploaded file(s) for channel(s): {', '.join(no_data)}"
+        elif len(incorrect_types) > 0:
+            return f"Incorrect data types for data in uploaded file(s) for channel(s): {', '.join(incorrect_types)}"
+        
         config.channels = combined_list
-        try:
-            config.source = self.convert_to_config_str(self.source_button_group.checkedButton().text())
-        except AttributeError:
-            return "Missing source selection"
-        try:
-            config.sys = self.convert_to_config_str(self.sys_button_group.checkedButton().text())
-        except AttributeError:
-            return "Missing system selection"
-        try:
-            config.plane = self.convert_to_config_str(self.lat_button_group.checkedButton().text())
-        except AttributeError:
-            return "Missing lattice plane selection"
+        config.source = self.convert_to_config_str(self.source_button_group.checkedButton().text())
+        config.sys = self.convert_to_config_str(self.sys_button_group.checkedButton().text())
+        config.plane = self.convert_to_config_str(self.lat_button_group.checkedButton().text())
+
         return config
 
     def error_win(self, message: str) -> None:
