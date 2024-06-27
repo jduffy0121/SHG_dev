@@ -3,15 +3,16 @@ import pathlib
 import os
 import pandas as pd
 import markdown
+import numpy as np
 from typing import List, Union, Tuple
 from dataclasses import dataclass, field
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, 
     QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, 
-    QRadioButton, QButtonGroup, QTextEdit, QTabWidget
+    QRadioButton, QButtonGroup, QTextEdit, QTabWidget, QTextBrowser
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption
+from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption, QDesktopServices
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
 
@@ -33,17 +34,20 @@ class HelpWindow(QWidget):
         self.tabs.setTabPosition(QTabWidget.TabPosition.North)
         self.tabs.setMovable(False)
 
-        self.background_txt = QTextEdit()
-        self.sim_txt = QTextEdit()
-        self.about_txt = QTextEdit()
+        self.background_txt = QTextBrowser()
+        self.sim_txt = QTextBrowser()
+        self.about_txt = QTextBrowser()
         self.background_txt.setReadOnly(True)
         self.sim_txt.setReadOnly(True)
         self.about_txt.setReadOnly(True)
         self.background_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.sim_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.about_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-
         self.set_txt_files()
+
+        self.background_txt.anchorClicked.connect(self.url_click)
+        self.sim_txt.anchorClicked.connect(self.url_click)
+        self.about_txt.anchorClicked.connect(self.url_click)
 
         self.tabs.addTab(self.background_txt, "Physics Background")
         self.tabs.addTab(self.sim_txt, "How to use Simulation")
@@ -57,15 +61,19 @@ class HelpWindow(QWidget):
     def set_txt_files(self) -> None:
         dir = [file for file in os.listdir(f'{SCRIPT_DIR}/ref_txt') if file[-3:] == '.md']
         for readme_file in dir:
-            with open(f'{SCRIPT_DIR}/ref_txt/{readme_file}', 'r') as file:
+            with open(f'{SCRIPT_DIR}/ref_txt/{readme_file}', 'r') as file: 
                 html_format = markdown.markdown(file.read())
                 if readme_file == 'background.md':
                     self.background_txt.setHtml(html_format)
-                elif readme_file == 'sim.md':
+                elif readme_file == 'sim.md': 
                     self.sim_txt.setHtml(html_format)
                 else:
                     self.about_txt.setHtml(html_format)
             file.close()
+
+    def url_click(self, url):
+        QDesktopServices.openUrl(url)
+        self.set_txt_files()
 
 class SimulationResults(QWidget):
     def __init__(self, parent=None) -> None:
@@ -85,7 +93,7 @@ class SimulationWindow(QWidget):
         self.import_layout = QGridLayout()
 
         self.header_label = QLabel("Please import your data:")
-        self.layout.addWidget(self.header_label)
+        self.layout.addWidget(self.header_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.channels_trans = ["||", "⊥"]
         self.channels_reflec = ["SS", "PP", "SP", "PS"]
@@ -105,7 +113,7 @@ class SimulationWindow(QWidget):
         self.back_button = QPushButton("Back")
         self.back_button.clicked.connect(self.back_to_main)
 
-        self.help_button = QPushButton("Information")
+        self.help_button = QPushButton("ⓘ")
         self.help_button.clicked.connect(self.open_help_win)
 
         self.data_layout, self.data_button_group, self.upload_group = self.win_create_data_layer_group()
@@ -120,9 +128,7 @@ class SimulationWindow(QWidget):
                                                                            text_label="System")
         self.lat_layout, self.lat_button_group = self.win_create_new_layer(list_itr=self.planes,
                                                                            text_label="Lattice Plane")
-        self.confirm_layout, self.confirm_button_group = self.win_create_new_layer(list_itr=self.confirms,
-                                                                                   text_label="Confirmation", 
-                                                                                   exclusive=False)
+        
         self.config_layout = self.win_create_config_layer_group()
         self.import_layout.addLayout(self.data_layout, 0, 0)
         self.import_layout.addLayout(self.config_layout, 0, 1)
@@ -137,7 +143,7 @@ class SimulationWindow(QWidget):
 
     def win_create_data_layer_group(self) -> (QVBoxLayout(), QButtonGroup(), QButtonGroup()):
         layout = QVBoxLayout()
-        label = QLabel("Import Data")
+        label = QLabel("Import Data", alignment=Qt.AlignmentFlag.AlignCenter)
         sub_label = QLabel("Please select file location(s)")
         layout.addWidget(label)
         layout.addWidget(sub_label)
@@ -175,13 +181,13 @@ class SimulationWindow(QWidget):
             layout.addLayout(d_chan_layout)
             button_id = button_id+1
            
-        prev_label = QLabel("Preview")
+        prev_label = QLabel("Preview", alignment=Qt.AlignmentFlag.AlignCenter)
         prev_img = QLabel(self)
         img_pixmap = QPixmap(f"{SCRIPT_DIR}/imgs/prev.png")
         scaled_img = img_pixmap.scaled(200, 200)
         prev_img.setPixmap(scaled_img)
         layout.addWidget(prev_label)
-        layout.addWidget(prev_img)
+        layout.addWidget(prev_img, alignment=Qt.AlignmentFlag.AlignCenter)
 
         return layout, data_button_group, upload_group
 
@@ -189,7 +195,7 @@ class SimulationWindow(QWidget):
                              text_label: str, exclusive: bool=True) -> (QVBoxLayout(), QButtonGroup()):
         layout = QVBoxLayout()
         label = QLabel(f"{text_label}")
-        layout.addWidget(label)
+        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
         button_group = QButtonGroup()
         button_group.setExclusive(exclusive)
         button_id = 0
@@ -213,14 +219,13 @@ class SimulationWindow(QWidget):
     def win_create_config_layer_group(self) -> QGridLayout():
         layout = QGridLayout()
         layout.addLayout(self.geo_layout, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.chan_layout, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.source_layout, 0, 2, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.sys_layout, 1, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.lat_layout, 1, 1, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.confirm_layout, 1, 2, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(self.run_button, 2, 2)
-        layout.addWidget(self.back_button, 2, 1)
-        layout.addWidget(self.help_button, 2, 0)
+        layout.addLayout(self.chan_layout, 1, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(self.source_layout, 2, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(self.sys_layout, 3, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(self.lat_layout, 4, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.run_button, 5, 0)
+        layout.addWidget(self.back_button, 6, 0)
+        layout.addWidget(self.help_button, 7, 0)
         return layout
 
     def upload_files(self) -> None:
@@ -275,7 +280,7 @@ class SimulationWindow(QWidget):
     def geo_button_clicked(self) -> None:
         if self.geo_button_group.checkedButton().text() == "Transmission":
             self.trans_button_clicked()
-        elif self.geo_button_group.checkedButton().text() == "Reflection":
+        else:
             self.refl_button_clicked()
         self.test_button_groups()
 
@@ -349,9 +354,9 @@ class SimulationWindow(QWidget):
             data_list = list(zip(df.iloc[:, 0], df.iloc[:, 1]))
             for (x,y) in data_list:
                 try:
-                    if isinstance(float(x), float) == False or isinstance(float(y), float) == False:
-                        return "Incorrect dtype"
-                except ValueError:
+                    if np.isnan(x) or np.isnan(y):
+                        return "Missing data elem"
+                except TypeError:
                     return "Incorrect dtype"
             return list(zip(df.iloc[:, 0], df.iloc[:, 1]))             
         except pd.errors.EmptyDataError:
@@ -390,6 +395,7 @@ class SimulationWindow(QWidget):
         too_many_columns = [channel for channel, data in combined_list if data == "Too many columns"]
         too_few_columns = [channel for channel, data in combined_list if data == "Too few columns"]
         incorrect_types = [channel for channel, data in combined_list if data == "Incorrect dtype"]
+        missing_types = [channel for channel, data in combined_list if data == "Missing data elem"]
 
         if len(no_data) > 0:
             return f"No data in uploaded file(s) for channel(s): {', '.join(no_data)}"
@@ -399,7 +405,9 @@ class SimulationWindow(QWidget):
             return f"Missing required data columns in uploaded file(s) for channel(s): {', '.join(no_data)}"
         elif len(incorrect_types) > 0:
             return f"Incorrect data types for data in uploaded file(s) for channel(s): {', '.join(incorrect_types)}"
-        
+        elif len(missing_types) > 0:
+            return f"Missing data element(s) for data in uploaded file(s) for channel(s): {', '.join(missing_types)}"
+ 
         config.channels = combined_list
         config.source = self.convert_to_config_str(self.source_button_group.checkedButton().text())
         config.sys = self.convert_to_config_str(self.sys_button_group.checkedButton().text())
