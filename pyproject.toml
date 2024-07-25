@@ -18,6 +18,8 @@ pyqt6 = "^6.7.0"
 pandas = "^2.2.2"
 markdown = "^3.6"
 numpy = "^2.0.0"
+matplotlib = "^3.9.1"
+sip = "^6.8.6"
 
 [build-system]
 requires = ["poetry-core"]

@@ -3,26 +3,27 @@ import pathlib
 import os
 import pandas as pd
 import markdown
+import math
+import sipbuild
+from .utils import *
+from .gui_classes import *
+from .fitting import *
 import numpy as np
 from typing import List, Union, Tuple
 from dataclasses import dataclass, field
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar, FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, 
-    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, 
-    QRadioButton, QButtonGroup, QTextEdit, QTabWidget, QTextBrowser
+    QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, QTableWidgetItem, QTableWidget,
+    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, QGraphicsDropShadowEffect, QHeaderView,
+    QRadioButton, QButtonGroup, QTextEdit, QTabWidget, QTextBrowser, QStackedLayout, QFrame, QComboBox
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption, QDesktopServices
+from PyQt6.QtCore import Qt, QRect, pyqtSignal, QRectF
+from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption, QDesktopServices, QColor, QRegion, QPainterPath
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
-
-@dataclass
-class SimInputConfig:
-    geometry: str = 'trans'
-    channels: List[Tuple[str, List[Tuple[float, float]]]] = field(default_factory=lambda: [('parallel', None)])
-    source: str = 'e_dip'
-    sys: str = 'triclinic'
-    plane: str = '001' 
+MINI_PLOT_DPI = 70
+FULL_PLOT_DPI = 210
 
 class HelpWindow(QWidget):
     def __init__(self, parent=None) -> None:
@@ -75,14 +76,329 @@ class HelpWindow(QWidget):
         QDesktopServices.openUrl(url)
         self.set_txt_files()
 
+class PlotWindow(QWidget):
+    def __init__(self, channel: list, fitting_func = None, parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(f'{channel[0]} Plot')
+        self.fig, self.ax = polar_plot(title=channel[0], data_list=channel[1], width=280, height=280, dpi=FULL_PLOT_DPI, add_func=fitting_func)
+        self.canvas = FigureCanvas(self.fig)
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.toolbar)
+        self.layout.addWidget(self.canvas)
+        self.setLayout(self.layout)
+
+    def closeEvent(self, event) -> None:
+        plt.close(self.fig)
+        event.accept()
+
 class SimulationResults(QWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, config: SimInputConfig, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Simulation")
         self.layout = QGridLayout()
-        self.label = QLabel("Eventually, we will do some cool physics magic and show something here")
-        self.layout.addWidget(self.label)
+        
+        self.config = config
+
+        self.tabs_layout, self.fit_check_group, self.legend_group = win_create_fit_tabs_layer(config=self.config)
+
+        self.no_plots = QLabel("To display plots, click \'plots\'")
+        self.expand_plots_button = QPushButton(">")
+        self.expand_plots_button.clicked.connect(self.expand_plots_button_clicked)
+        self.expanded = False
+        self.plots_showing = None
+        self.figures = []
+        self.sel_chan = None
+        self.sel_chan_txt = QLabel(f"Selected channel: {self.sel_chan}", alignment=Qt.AlignmentFlag.AlignRight)
+
+        self.add_button_layout, self.add_button_group, self.swap_button_group = self.win_create_add_plot_layer()
+        self.plot_layout, self.full_button_group, self.close_button_group = self.win_create_plot_layer(channels=self.config.channels)
+        
+        self.no_layout = QVBoxLayout()
+        self.no_layout.addWidget(self.no_plots)
+        self.expand_layout = QHBoxLayout()
+        self.expand_layout.addWidget(self.expand_plots_button, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        self.help_button = QPushButton("ⓘ")
+        self.help_button.clicked.connect(self.open_help_win)
+        
+        self.layout.addLayout(self.tabs_layout, 0, 0)
+        self.layout.addLayout(self.expand_layout, 0, 1)
+        self.layout.addLayout(self.no_layout, 0, 2)
+        self.layout.addLayout(self.plot_layout, 0, 2)
+        self.layout.addWidget(self.help_button, 1, 0)
+        self.layout.addWidget(self.sel_chan_txt, 1, 2)
+
+        self.help_win = None
+
         self.setLayout(self.layout)
+        self.setFixedSize(1350,750)   
+        
+        self.clear_plots()
+
+    def win_create_plot_layer(self, channels: list) -> (QGridLayout(), QButtonGroup(), QButtonGroup()):
+        layout = QGridLayout()
+        full_button_group = QButtonGroup()
+        close_button_group = QButtonGroup()
+        plot_id = 0
+        plots_showing = []
+        self.figures = []
+        for channel, data_list in channels:
+            sub_layout = QGridLayout()
+            button_layout = QVBoxLayout()
+
+            enlarge_button = QPushButton('⤢')
+            close_button = QPushButton('✕')
+            
+            full_button_group.addButton(enlarge_button)
+            full_button_group.setId(enlarge_button, plot_id)
+            close_button_group.addButton(close_button)
+            close_button_group.setId(close_button, plot_id)
+
+            enlarge_button.clicked.connect(self.full_button_clicked)
+            close_button.clicked.connect(self.close_button_clicked) 
+            
+            fig, ax = polar_plot(title=channel, data_list=data_list, width=290/MINI_PLOT_DPI, height=290/MINI_PLOT_DPI, dpi=MINI_PLOT_DPI)
+            canvas = ClickableFigureCanvas(fig, plot_id)
+            canvas.canvas_signal.connect(self.canvas_clicked)
+            self.figures.append((fig, canvas))
+            canvas.setFixedSize(290, 290)
+
+            sub_layout.addWidget(canvas, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
+            button_layout.addWidget(enlarge_button)
+            button_layout.addWidget(close_button)
+            sub_layout.addLayout(button_layout, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
+            
+            plots_showing.append((channel, data_list))
+
+            if plot_id == 0:
+                layout.addLayout(sub_layout, 0, 0)
+            elif plot_id == 1:
+                layout.addLayout(sub_layout, 0, 1)
+            elif plot_id == 2:
+                layout.addLayout(sub_layout, 1, 0)
+            else:
+                layout.addLayout(sub_layout, 1, 1)
+            plot_id = plot_id + 1
+
+        self.plots_showing = plots_showing
+        return layout, full_button_group, close_button_group
+    
+    def win_create_add_plot_layer(self) -> (QVBoxLayout(), QButtonGroup(), QButtonGroup()):
+        layout = QVBoxLayout()
+        add_button_group = QButtonGroup()
+        swap_button_group = QButtonGroup()
+        button_id = 0
+        for channel, data_list in self.config.channels:
+            label = QLabel(f'{channel}')
+            sub_layout = QHBoxLayout()
+            sub_layout.addWidget(label)
+            button_layout = QVBoxLayout()
+            add_button = QPushButton('+')
+            add_button.clicked.connect(self.add_button_clicked) 
+            add_button_group.setId(add_button, button_id)
+            swap_button = QPushButton('⇆')
+            swap_button.clicked.connect(self.swap_button_clicked)
+            swap_button_group.setId(swap_button, button_id)
+            button_layout.addWidget(add_button)
+            button_layout.addWidget(swap_button)
+            sub_layout.addLayout(button_layout)
+            button_id = button_id + 1
+            if self.plots_showing is not None:
+                plotted_chans = [chan for chan, dlist in self.plots_showing]
+                if channel in plotted_chans:
+                    add_button.setEnabled(False)
+            if self.sel_chan is not None:
+                if channel == self.sel_chan[0]:
+                    swap_button.setEnabled(False)
+            layout.addLayout(sub_layout)
+        return layout, add_button_group, swap_button_group
+
+    def full_button_clicked(self) -> None:
+        button = self.sender()
+        button_id = self.full_button_group.id(button)
+        channel = self.plots_showing[button_id]
+        self.sel_chan = channel
+        self.update_selections()
+        self.plot_window = PlotWindow(channel=channel)
+        self.plot_window.show()
+
+    def expand_plots_button_clicked(self) -> None:
+        if self.expand_plots_button.text() == '>':
+            self.expanded = True
+            self.expand_layout.removeWidget(self.expand_plots_button)
+            self.expand_plots_button.deleteLater()
+            self.expand_plots_button.setParent(None)
+
+            self.expand_layout = QHBoxLayout()
+            self.expand_plots_button = QPushButton('<')
+            self.expand_plots_button.clicked.connect(self.expand_plots_button_clicked)
+            self.add_button_layout, self.add_button_group, self.swap_button_group = self.win_create_add_plot_layer()
+            self.expand_layout.addWidget(self.expand_plots_button, alignment=Qt.AlignmentFlag.AlignBottom)
+            self.expand_layout.addLayout(self.add_button_layout)
+        else:
+            self.expanded = False
+            self.expand_plots_button.deleteLater()
+            self.expand_plots_button.setParent(None)
+            for i in range(self.expand_layout.count()):
+                item_1 = self.expand_layout.itemAt(i)
+                if item_1 is None:
+                    break
+                if isinstance(item_1.layout(), QVBoxLayout):
+                    for j in reversed(range(item_1.count())):
+                        item_2 = item_1.itemAt(j)
+                        for k in reversed(range(item_2.count())):
+                            item_3 = item_2.itemAt(k)
+                            if isinstance(item_3.layout(), QVBoxLayout):
+                                for l in reversed(range(item_3.count())):
+                                    item_4 = item_3.itemAt(l)
+                                    item_3.setParent(None)
+                                    widget = item_4.widget()
+                                    item_3.removeWidget(widget)
+                                    widget.deleteLater()
+                                    widget.setParent(None)
+                            else:
+                                widget = item_3.widget()
+                                widget.deleteLater()
+                                widget.setParent(None)
+            self.expand_layout = QHBoxLayout()
+            self.expand_plots_button = QPushButton('>')
+            self.expand_plots_button.clicked.connect(self.expand_plots_button_clicked)
+            self.expand_layout.addWidget(self.expand_plots_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.layout.addLayout(self.expand_layout, 0, 1)
+        self.setLayout(self.layout)
+
+    def close_button_clicked(self) -> None:
+        button = self.sender()
+        button_id = self.close_button_group.id(button)
+        channel = self.plots_showing[button_id]
+        channel_id = self.config.channels.index(channel)
+        if self.expanded:
+            self.add_button_group.button(channel_id).setEnabled(True)
+        num_of_plts = len(self.plots_showing)
+        if num_of_plts == 1:
+            no_plots = QLabel("To display plots, click \'plots\'")
+            self.clear_plots()
+            self.no_layout.addWidget(no_plots)
+            self.setLayout(self.layout)
+            self.sel_chan = None
+            self.update_selections()
+            return
+        plot_list = self.plots_showing[:button_id] + self.plots_showing[button_id+1:]
+        self.clear_plots()
+        self.plot_layout, self.full_button_group, self.close_button_group = self.win_create_plot_layer(channels=plot_list)
+        self.layout.addLayout(self.plot_layout, 0, 2)
+        self.setLayout(self.layout)
+        self.sel_chan = self.plots_showing[0]
+        self.update_selections()
+
+    def add_button_clicked(self) -> None:
+        button = self.sender()
+        button.setEnabled(False)
+        button_id = self.add_button_group.id(button)
+        channel = self.config.channels[button_id]
+        if self.plots_showing is None:
+            total_channels = [channel]
+            text = self.no_layout.itemAt(0).widget()
+            self.no_layout.removeWidget(text)
+            text.deleteLater()
+            text.setParent(None)
+        else:
+            total_channels = self.plots_showing + [channel]
+            self.clear_plots()
+        self.plot_layout, self.full_button_group, self.close_button_group = self.win_create_plot_layer(channels = total_channels)
+        self.layout.addLayout(self.plot_layout, 0, 2)
+        self.sel_chan = channel
+        self.update_selections()
+
+    def swap_button_clicked(self) -> None:
+        if not self.plots_showing:
+            return
+        button = self.sender()
+        button_id = self.swap_button_group.id(button)
+        channel = self.config.channels[button_id]
+        selected_id = self.plots_showing.index(self.sel_chan)
+        plot_list = self.plots_showing
+        if (self.sel_chan in self.plots_showing) and (self.config.channels[button_id] in self.plots_showing):
+            plot_id = self.plots_showing.index(channel)
+            plot_list[selected_id], plot_list[plot_id] = plot_list[plot_id], plot_list[selected_id]
+            self.clear_plots()
+            self.plot_layout, self.full_button_group, self.close_button_group = self.win_create_plot_layer(channels = plot_list)
+            self.layout.addLayout(self.plot_layout, 0, 2)
+            self.sel_chan = channel
+            self.update_selections()
+
+        else:
+            plot_list[selected_id] = channel
+            self.clear_plots()
+            self.plot_layout, self.full_button_group, self.close_button_group = self.win_create_plot_layer(channels = plot_list)
+            self.layout.addLayout(self.plot_layout, 0, 2)
+            self.sel_chan = channel
+            self.update_selections()
+         
+    def canvas_clicked(self, plot_id) -> None:
+        self.sel_chan = self.plots_showing[plot_id]
+        self.update_selections()
+
+    def update_selections(self, disable_swap = False) -> None:
+        text = self.layout.itemAtPosition(1,2).widget()
+        self.layout.removeWidget(text)
+        text.deleteLater()
+        text.setParent(None)
+        try:
+            new_label = self.sel_chan[0]
+        except TypeError:
+            new_label = None
+        for fig, canvas in self.figures:
+            canvas.remove_glow_effect()
+        if self.sel_chan is not None:
+            selected_id = self.plots_showing.index(self.sel_chan)
+            self.figures[selected_id][1].apply_glow_effect()
+        self.sel_chan_txt = QLabel(f"Selected channel: {new_label}", alignment=Qt.AlignmentFlag.AlignRight)
+        self.layout.addWidget(self.sel_chan_txt, 1, 2)
+        self.setLayout(self.layout)
+        if self.expanded:
+            for channel in self.config.channels:
+                channel_id = self.config.channels.index(channel)
+                if channel == self.sel_chan:
+                    self.swap_button_group.button(channel_id).setEnabled(False)
+                else:
+                    self.swap_button_group.button(channel_id).setEnabled(True)
+
+    def clear_plots(self):
+        for fig, canvas in self.figures:
+            plt.close(fig)
+        for k in range(self.plot_layout.count()):
+            item_1 = self.plot_layout.itemAt(k)
+            if item_1 is None:
+                self.plot_layout = None
+                return
+            for i in reversed(range(item_1.count())):
+                item_2 = item_1.itemAtPosition(0,i)
+                if isinstance(item_2.layout(), QVBoxLayout):
+                    for j in reversed(range(item_2.count())):
+                        item_3 = item_2.itemAt(j)
+                        item_2.setParent(None)
+                        widget = item_3.widget()
+                        item_2.removeWidget(widget)
+                        widget.deleteLater()
+                        widget.setParent(None)
+                else:
+                    widget = item_2.widget()
+                    widget.deleteLater()
+                    widget.setParent(None)
+        self.plots_showing = None
+        
+    def open_help_win(self) -> None:
+        self.help_win = HelpWindow()
+        self.help_win.show()
+
+    def closeEvent(self, event) -> None:
+        for fig, canvas in self.figures:
+            plt.close(fig)
+        if self.help_win is not None and self.help_win.isVisible():
+            self.help_win.close()
+        event.accept()
 
 class SimulationWindow(QWidget): 
     def __init__(self, parent=None) -> None:
@@ -337,57 +653,26 @@ class SimulationWindow(QWidget):
         self.run_button.setEnabled(False)
         config = self.get_current_inputs()
         if isinstance(config, SimInputConfig):
-            self.results_win = SimulationResults()
-            self.results_win.show()
-            print(config)
+            self.config_win = SimulationResults(config=config)
+            self.config_win.show()
         else:
             self.error_win(message=config)
         self.run_button.setEnabled(True)  
-
-    def read_data(self, data_path: pathlib.Path) -> Union[List[Tuple[float, float]], str]: 
-        try:
-            df = pd.read_csv(data_path) 
-            if df.shape[1] > 2:
-                return "Too many columns"
-            elif df.shape[1] < 2:
-                return "Too few columns"
-            data_list = list(zip(df.iloc[:, 0], df.iloc[:, 1]))
-            for (x,y) in data_list:
-                try:
-                    if np.isnan(x) or np.isnan(y):
-                        return "Missing data elem"
-                except TypeError:
-                    return "Incorrect dtype"
-            return list(zip(df.iloc[:, 0], df.iloc[:, 1]))             
-        except pd.errors.EmptyDataError:
-            return "No data"
-    
-    def convert_to_config_str(self, gui_name: str) -> str:
-        name_scheme = {'||': 'parallel', '⊥': 'perpendicular', 'Transmission': 'trans', 'Reflection': 'refl', 
-                       'Electric Dipole': 'e_dip', 'Electric Quadrupole': 'e_quad', 'Magnetic Dipole': 'm_dip', 
-                       '(0 0 1)': '001','Rotz(90°)': 'rotz90'}
-        try:
-            return name_scheme[f'{gui_name}']
-        except KeyError:
-            return gui_name.lower()
 
     def get_current_inputs(self) -> Union[SimInputConfig, str]:
         config = SimInputConfig()
 
         if all(data is None for data in self.data_files):
             return "No data files uploaded"
-        try:
-            config.geometry = self.convert_to_config_str(self.geo_button_group.checkedButton().text())
-        except AttributeError:
-            return "Missing geometry selection"
+        config.geometry = convert_to_config_str(self.geo_button_group.checkedButton().text())
         if self.geo_button_group.checkedButton().text() == "Transmission":
             combined_list = [
-                (self.convert_to_config_str(self.channels_trans[i]), self.read_data(self.data_files[i])) 
+                (convert_to_config_str(self.channels_trans[i]), read_data(self.data_files[i])) 
                 for i in range(2) if (self.channels_trans[i] in self.valid_channels)
             ]
         else:
             combined_list = [
-                (self.convert_to_config_str(self.channels_reflec[i]), self.read_data(self.data_files[i+2]))
+                (convert_to_config_str(self.channels_reflec[i]), read_data(self.data_files[i+2]))
                 for i in range(4) if (self.channels_reflec[i] in self.valid_channels)
             ]
     
@@ -398,20 +683,20 @@ class SimulationWindow(QWidget):
         missing_types = [channel for channel, data in combined_list if data == "Missing data elem"]
 
         if len(no_data) > 0:
-            return f"No data in uploaded file(s) for channel(s): {', '.join(no_data)}"
+            return f"No data in uploaded file for channel(s): {', '.join(no_data)}"
         elif len(too_many_columns) > 0:
-            return f"Too many data columns in uploaded file(s) for channel(s): {', '.join(too_many_columns)}"
+            return f"Too many data columns in uploaded file for channel(s): {', '.join(too_many_columns)}"
         elif len(too_few_columns) > 0:
-            return f"Missing required data columns in uploaded file(s) for channel(s): {', '.join(no_data)}"
+            return f"Missing required data columns in uploaded file for channel(s): {', '.join(no_data)}"
         elif len(incorrect_types) > 0:
-            return f"Incorrect data types for data in uploaded file(s) for channel(s): {', '.join(incorrect_types)}"
+            return f"Incorrect data types for data in uploaded file for channel(s): {', '.join(incorrect_types)}"
         elif len(missing_types) > 0:
-            return f"Missing data element(s) for data in uploaded file(s) for channel(s): {', '.join(missing_types)}"
+            return f"Missing data elements for data in uploaded file for channel(s): {', '.join(missing_types)}"
  
         config.channels = combined_list
-        config.source = self.convert_to_config_str(self.source_button_group.checkedButton().text())
-        config.sys = self.convert_to_config_str(self.sys_button_group.checkedButton().text())
-        config.plane = self.convert_to_config_str(self.lat_button_group.checkedButton().text())
+        config.source = convert_to_config_str(self.source_button_group.checkedButton().text())
+        config.sys = convert_to_config_str(self.sys_button_group.checkedButton().text())
+        config.plane = convert_to_config_str(self.lat_button_group.checkedButton().text())
 
         return config
 
