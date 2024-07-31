@@ -20,14 +20,14 @@ To achieve this goal, this package has two main functions:
     - Installing and using poetry to run this program can be found below.
     - Documentation about the poetry package can be found [here](https://www.python-poetry.org). 
   
-#### Installing the Poetry Package
+### Installing the Poetry Package
 Install poetry with pip: 
 ```
 pip install poetry
 ```
 Other more advanced methods of installation can be found in the poetry documentation above.
   
-#### Creating a new Conda environment with Python
+### Creating a new Conda environment with Python
 Conda does not need to be installed, however, it allows for an easy way to create isolated local developmental enviorments.  
 If user wishes to use another package manager for their virtual environments (such as pip) for the next step, then ignore any references to conda.  
 Creating a new conda enviorment:
@@ -37,7 +37,7 @@ conda activate env_name_here
 ```
 Documentation about installing conda can be found [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
   
-#### Installing Packages Locally  
+### Installing Packages Locally  
 In the repository's root directory, run:
 ```
 poetry install
@@ -56,7 +56,7 @@ shg_gui
 None yet, this package still in developmental stage.
   
 ## About Us
-This package was created by the [Ultrafast Nonlinear Optics (UNO)](https://jinlab.auburn.edu/) at Auburn University Physics Department.  
+This package was created by the [Ultrafast Nonlinear Optics (UNO)](https://jinlab.auburn.edu/) at Auburn University's Physics Department.  
 Specific member contributors:
 - Jacob Duffy (Auburn University - Physics and Computer Science Departments: jod0007@auburn.edu)
 - Hussam Mustafa (Auburn University – Physics Department: hnm0037@auburn.edu)
