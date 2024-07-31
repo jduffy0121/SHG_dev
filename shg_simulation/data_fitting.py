@@ -1,13 +1,9 @@
+import inspect
+import numpy as np
+from scipy.optimize import curve_fit
+
 from .gui_classes import *
 from .utils import *
-from PyQt6.QtWidgets import (
-    QWidget, QCheckBox, QVBoxLayout, QButtonGroup, QTabWidget, 
-    QComboBox, QTableWidget, QTableWidgetItem, QLabel, QRadioButton
-)
-
-from scipy.optimize import curve_fit
-import numpy as np
-import inspect
 
 def init_fit_classes(config: FitConfig, manager: FitManager) -> None:
     point_groups = get_point_groups(source=config.source, sys=config.sys)

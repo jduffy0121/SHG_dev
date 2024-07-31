@@ -3,8 +3,8 @@ import pathlib
 import os
 import pkg_resources
 import markdown
-from typing import List, Union, Tuple
 import matplotlib.pyplot as plt
+from typing import List, Union, Tuple
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar, FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, QTableWidgetItem, QTableWidget,

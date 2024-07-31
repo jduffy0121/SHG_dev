@@ -5,26 +5,26 @@ from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import matplotlib
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QVBoxLayout, QHBoxLayout, QGridLayout, QComboBox
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QComboBox
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF
 from PyQt6.QtGui import QPainterPath, QRegion, QColor
 
 @dataclass
 class PointGroupFit:
-    name: str = 'C_1'
-    channel: str = 'SS'
-    func: types.FunctionType = field(default_factory=lambda x: a * np.sin(x + const) ** 2)
+    name: str = ''
+    channel: str = ''
+    func: types.FunctionType = field(default_factory=lambda x: x)
     weights: List[Tuple[str, float]] = field(default_factory=lambda: [()])
     fit_r: List[float] = field(default_factory=lambda: [0.0])
     fit_phi: List[float] = field(default_factory=lambda: [0.0])
     r2: float = 1.0
-    legend: str = 'Red'
+    legend: str = ''
     active: bool = False
 
 @dataclass
 class FitManager:
     point_groups: List[PointGroupFit] = field(default_factory=lambda: [])
-    selection_mode: str = 'Single'
+    selection_mode: str = ''
     selected_channels: List[str] = field(default_factory=lambda: [])
     plots_showing: List[str] = field(default_factory=lambda: [])
     prev_selected: List[str] = field(default_factory=lambda: [])
@@ -33,12 +33,12 @@ class FitManager:
 
 @dataclass
 class FitConfig:
-    geometry: str = 'trans'
+    geometry: str = ''
     channels: List[str] = field(default_factory=lambda: [])
     data: Dict[str, List[float]] = field(default_factory=lambda: {})
-    source: str = 'e_d'
-    sys: str = 'triclinic'
-    plane: str = '001'
+    source: str = ''
+    sys: str = ''
+    plane: str = ''
 
 class OSConfig:
     def __init__(self):
@@ -70,7 +70,6 @@ class OSConfig:
             self.full_plt_dpi = windows_config['full_plt_dpi']
             self.full_plt_len = windows_config['full_plt_len']
             self.invalid_os = False
-
         elif self.os == 'Darwin':
             self.fit_win_upld_box_len = mac_config['fit_win_upld_box_len']
             self.fit_win_upld_box_ht = mac_config['fit_win_upld_box_ht']
@@ -79,7 +78,6 @@ class OSConfig:
             self.full_plt_dpi = mac_config['full_plt_dpi']
             self.full_plt_len = mac_config['full_plt_len']
             self.invalid_os = False
-
         elif self.os == 'Linux':
             self.fit_win_upld_box_len = linux_config['fit_win_upld_box_len']
             self.fit_win_upld_box_ht = linux_config['fit_win_upld_box_ht']
@@ -88,24 +86,9 @@ class OSConfig:
             self.full_plt_dpi = linux_config['full_plt_dpi']
             self.full_plt_len = linux_config['full_plt_len']
             self.invalid_os = False
-
         else:
             self.invalid_os = True
     
-class FittingResultsLayout:
-    def __init__(self):
-        self.tabs_layout = QVBoxLayout()
-        self.expanded_layout = QHBoxLayout()
-        self.no_plots_layout = QVBoxLayout()
-        self.add_button_layout = QVBoxLayout()
-
-        self.add_button_group = None
-
-        self.expanded = False
-
-    def set_initial_layout(self):
-        pass
-
 class CustomComboBox(QComboBox):
     box_signal = pyqtSignal(str)
     def __init__(self):
