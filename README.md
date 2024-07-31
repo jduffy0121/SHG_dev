@@ -34,3 +34,4 @@ If poetry was properly installed inside the repository, then the following scrip
 ```   
     shg_gui
 ```
+*Note, this script must be performed in the root directory of the repository*
