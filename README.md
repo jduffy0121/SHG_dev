@@ -7,12 +7,12 @@
 - This repository use poetry as a package manager to make it easy to install all dependencies to properly execute the program. 
     - Installing and using poetry can be found below.
     - Documentation about the poetry package can be found [here](https://www.python-poetry.org).  
-##### Installing Poetry  
+#### Installing Poetry  
 Install poetry with pip: 
 ```
     pip install poetry
 ```
-##### Create Conda Environment with Python
+#### Create Conda Environment with Python
 Conda does not need to be installed, however, it allows for local developmental enviorments.  
 If user wishes to use another package manager (such as pip) for the next step, then ignore any references to conda.  
 Creating a new conda enviorment:
@@ -21,7 +21,7 @@ Creating a new conda enviorment:
     conda activate env_name_here
 ```
 Documentation about installing conda can be found [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
-##### Installing Packages Locally  
+#### Installing Packages Locally  
 In the repository's directory:
 ```
     conda activate env_name_here
