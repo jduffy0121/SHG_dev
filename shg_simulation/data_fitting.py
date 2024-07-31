@@ -8,11 +8,10 @@ from PyQt6.QtWidgets import (
 from scipy.optimize import curve_fit
 import numpy as np
 import inspect
-import matplotlib.pyplot as plt
 
 def init_fit_classes(config: FitConfig, manager: FitManager) -> None:
     point_groups = get_point_groups(source=config.source, sys=config.sys)
-    colors = ['Red', 'Green', 'Orange', 'Purple', 'Brown']
+    colors = ['Red', 'Green', 'Orange', 'Purple', 'Brown', 'Blue']
     for channel in config.channels:
         i = 0
         for group in point_groups:

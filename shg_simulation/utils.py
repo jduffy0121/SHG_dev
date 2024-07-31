@@ -1,10 +1,9 @@
 import pathlib
-import inspect
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as df
 from typing import List, Tuple, Union
+
 from .gui_classes import *
 
 def read_data(data_path: pathlib.Path) -> Union[List[Tuple[float, float]], str]: 

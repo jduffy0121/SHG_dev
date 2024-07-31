@@ -1,31 +1,27 @@
 import sys
 import pathlib
 import os
-import pandas as pd
+import pkg_resources
 import markdown
-import math
-import sipbuild
-from .utils import *
-from .gui_classes import *
-from .data_fitting import *
-import numpy as np
-import types
-import inspect
 from typing import List, Union, Tuple
-from dataclasses import dataclass, field
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar, FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, QTableWidgetItem, QTableWidget,
-    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, QGraphicsDropShadowEffect, QHeaderView,
-    QRadioButton, QButtonGroup, QTextEdit, QTabWidget, QTextBrowser, QStackedLayout, QFrame, QComboBox
+    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox,QRadioButton, QButtonGroup, QTextEdit, 
+    QTabWidget, QTextBrowser, QComboBox
 )
-from PyQt6.QtCore import Qt, QRect, pyqtSignal, QRectF
-from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption, QDesktopServices, QColor, QRegion, QPainterPath
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption, QDesktopServices
+
+from .utils import *
+from .gui_classes import *
+from .data_fitting import *
+
 
 SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
-MINI_PLOT_DPI = 70
-FULL_PLOT_DPI = 210
+
+OS_CONFIG = OSConfig()
 
 class HelpWindow(QWidget):
     def __init__(self, parent=None) -> None:
@@ -84,7 +80,9 @@ class PlotWindow(QWidget):
         self.setWindowTitle(f'{channel}')
         self.config = config
         self.fits = [point_group for point_group in point_groups if point_group.active == True and point_group.channel == channel]
-        self.fig, self.ax = polar_plot(title=channel, data=self.config.data[channel], width=280, height=280, dpi=FULL_PLOT_DPI, fits=self.fits)
+        self.fig, self.ax = polar_plot(title=channel, data=self.config.data[channel], 
+                                       width=OS_CONFIG.full_plt_len, height=OS_CONFIG.full_plt_len, 
+                                       dpi=OS_CONFIG.full_plt_dpi, fits=self.fits)
         self.canvas = FigureCanvas(self.fig)
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.layout = QVBoxLayout()
@@ -283,11 +281,14 @@ class FitResults(QWidget):
             enlarge_button.clicked.connect(self.full_button_clicked)
             close_button.clicked.connect(self.close_button_clicked) 
             
-            fig, ax = polar_plot(title=channel, data=self.config.data[channel], width=290/MINI_PLOT_DPI, height=290/MINI_PLOT_DPI, dpi=MINI_PLOT_DPI, fits=fits)
-            canvas = ClickableFigureCanvas(fig, plot_id)
+            fig, ax = polar_plot(title=channel, data=self.config.data[channel], 
+                                 width=(OS_CONFIG.fit_res_mini_plt_r/OS_CONFIG.fit_res_mini_plt_dpi) * 2, 
+                                 height=(OS_CONFIG.fit_res_mini_plt_r/OS_CONFIG.fit_res_mini_plt_dpi) * 2, 
+                                 dpi=OS_CONFIG.fit_res_mini_plt_dpi, fits=fits)
+            canvas = ClickableFigureCanvas(figure=fig, plot_id=plot_id, radius=OS_CONFIG.fit_res_mini_plt_r)
             canvas.canvas_signal.connect(self.canvas_clicked)
             self.manager.figures.append((fig, canvas))
-            canvas.setFixedSize(290, 290)
+            canvas.setFixedSize(OS_CONFIG.fit_res_mini_plt_r * 2, OS_CONFIG.fit_res_mini_plt_r * 2)
 
             sub_layout.addWidget(canvas, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
             button_layout.addWidget(enlarge_button)
@@ -341,12 +342,17 @@ class FitResults(QWidget):
                 if channel in self.manager.plots_showing:
                     add_button.setEnabled(False)
             layout.addLayout(sub_layout)
+        data_color_label = QLabel('Choose data points color')
+        data_color_box = CustomComboBox()
+        data_color_box.addItems(['Blue', 'Red', 'Green', 'Orange', 'Purple', 'Brown'])
         selection_mode_label = QLabel('Choose selection mode')
         selection_mode_box = CustomComboBox()
         selection_mode_box.addItems(['Single', 'Multiple'])
         if self.manager.selection_mode == 'Multiple':
             selection_mode_box.setCurrentIndex(1)
         selection_mode_box.box_signal.connect(self.selection_mode_changed)
+        layout.addWidget(data_color_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(data_color_box)
         layout.addWidget(selection_mode_label, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(selection_mode_box)
         return layout, add_button_group, swap_button_group
@@ -477,7 +483,7 @@ class FitResults(QWidget):
         self.manager.prev_selected = self.manager.selected_channels
         if channel in self.manager.selected_channels:
             self.manager.selected_channels.remove(channel)
-            if self.sel_mode == 'Single':
+            if self.manager.selection_mode == 'Single':
                 self.manager.selected_channels = []
         self.update_selections()
 
@@ -570,7 +576,7 @@ class FitResults(QWidget):
                 fit_table.setCellWidget(i, 1, label)
                 fit_table.setItem(i, 2, fit_result)
                 box = QComboBox()
-                box.addItems(['Red', 'Green', 'Orange', 'Purple', 'Brown'])
+                box.addItems(['Red', 'Green', 'Orange', 'Purple', 'Brown', 'Blue'])
                 box.setCurrentText(point_group.legend)
                 legend_group.addComboBox(box)
                 fit_check_group.addButton(check_box, i)
@@ -827,7 +833,7 @@ class FitWindow(QWidget):
             line_height = font_metrics.lineSpacing()
             text.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             text.setWordWrapMode(QTextOption.WrapMode.NoWrap)
-            text.setFixedSize(300, line_height + 15)
+            text.setFixedSize(OS_CONFIG.fit_win_upld_box_len, line_height + OS_CONFIG.fit_win_upld_box_ht)
 
             upload = QPushButton("...")
             upload.clicked.connect(self.upload_files)
@@ -1116,7 +1122,11 @@ class MainWindow(QMainWindow):
         self.win.show()
         self.close()
 
-def startup_mac(): 
+def main():
+    if OS_CONFIG.invalid_os == True:
+        print(f"Version {pkg_resources.get_distribution('shg_simulation').version} of SHG Simulation Package is not supported on this operating system.")
+        print("Supported operating systems: Windows, macOS, and Linux.")
+        return
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
