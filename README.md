@@ -3,8 +3,8 @@
 ![License](https://img.shields.io/github/license/jduffy0121/SHG_dev)
 ![GitHub Size](https://img.shields.io/github/repo-size/jduffy0121/SHG_dev)
   
-The purpose of this package is to to assist the Condensed Matter Physics communitiy who work with Rotational-Anisotropic Second-Harmonic Generation (RA-SHG). 
-To achieve this goal, this package has two main functions:  
+The purpose of this package is to to assist the Condensed Matter Physics communitiy who work with Rotational-Anisotropic Second-Harmonic Generation (RA-SHG).  
+To achieve this goal, this package has two main functions: 
 1. To fit collected RA-SHG data to different nonlinear crystals and point groups using an r squared fitting function.
 2. To simulate RA-SHG data based on a crystal lattice for the electric dipole (ED), electric quadrupole (EQ), and magnetic dipole (MD) radiation sources.
   
