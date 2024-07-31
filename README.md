@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/github/license/jduffy0121/SHG_dev)
 ![GitHub Size](https://img.shields.io/github/repo-size/jduffy0121/SHG_dev)
   
-The purpose of this package is to to assist the Condensed Matter Physics communitiy who work with Rotational-Anisotropic Second-Harmonic Generation (RA-SHG).  
+The purpose of this package is to to assist the Condensed Matter Physics communitiy members who work with Rotational-Anisotropic Second-Harmonic Generation (RA-SHG).  
   
 To achieve this goal, this package has two main functions: 
 1. To fit collected RA-SHG data to different nonlinear crystals and point groups using an r squared fitting function.
@@ -57,11 +57,12 @@ None yet, this package still in developmental stage.
   
 ## About Us
 This package was created by the [Ultrafast Nonlinear Optics (UNO)](https://jinlab.auburn.edu/) at Auburn University's Physics Department.  
+  
 Specific member contributors:
 - Jacob Duffy (Auburn University - Physics and Computer Science Departments: jod0007@auburn.edu)
 - Hussam Mustafa (Auburn University – Physics Department: hnm0037@auburn.edu)
 - Brian Opatosky (Auburn University – Physics Department: bbo0007@auburn.edu)
 - Chunli Tang (Auburn University – Electrical and Computer Engineering Department: chunli.tang@auburn.edu)
   
-Advisor:
+We would like to thank our advisor for the support in creating this package:
 - [Dr. Wencan Jin](https://www.auburn.edu/cosam/departments/physics/physics-faculty/jin/index.htm) (Auburn University – Physics Department: wjin@auburn.edu)
