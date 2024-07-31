@@ -1,6 +1,6 @@
 # SHG_dev
-![GitHub release version] (https://img.shields.io/github/v/release/jduffy0121/SHG_dev?color=%2350C878&include_prereleases)
-![License] (https://img.shields.io/github/license/jduffy0121/SHG_dev)
+![GitHub release version](https://img.shields.io/github/v/release/jduffy0121/SHG_dev?color=%2350C878&include_prereleases)
+![License](https://img.shields.io/github/license/jduffy0121/SHG_dev)
 ![GitHub Size](https://img.shields.io/github/repo-size/jduffy0121/SHG_dev)
   
 The purpose of this package is to to assist the Condensed Matter Physics communitiy who work with Rotational-Anisotropic Second-Harmonic Generation (RA-SHG). 
