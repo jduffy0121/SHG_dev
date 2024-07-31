@@ -22,7 +22,7 @@ To achieve this goal, this package has two main functions:
 #### Installing the Poetry Package
 Install poetry with pip: 
 ```
-    pip install poetry
+pip install poetry
 ```
 Other more advanced methods of installation can be found in the poetry documentation above.
   
@@ -31,15 +31,15 @@ Conda does not need to be installed, however, it allows for an easy way to creat
 If user wishes to use another package manager for their virtual environments (such as pip) for the next step, then ignore any references to conda.  
 Creating a new conda enviorment:
 ```
-    conda create --name env_name_here
-    conda activate env_name_here
+conda create --name env_name_here
+conda activate env_name_here
 ```
 Documentation about installing conda can be found [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
   
 #### Installing Packages Locally  
 In the repository's root directory, run:
 ```
-    poetry install
+poetry install
 ```
 This will install all the packages needed to compile and run the program.  
 All packages and versions of these packages that will be installed can be viewed in the `pyproject.toml` file under the `tool.poetry.dependencies` section.
@@ -47,7 +47,7 @@ All packages and versions of these packages that will be installed can be viewed
 ## Running the Program  
 If poetry was properly installed inside the repository, then the following script will be active and will initialize the gui:
 ```   
-    shg_gui
+shg_gui
 ```
 *Note: this script must be performed in the root directory of the repository*
   
@@ -55,8 +55,7 @@ If poetry was properly installed inside the repository, then the following scrip
 None yet, this package still in developmental stage.
   
 ## About Us
-This package was created by the Ultrafast Nonlinear Optics (UNO) at Auburn University Physics Department.  
-Our groups website can be found [here](https://jinlab.auburn.edu/).  
+This package was created by the [Ultrafast Nonlinear Optics (UNO)](https://jinlab.auburn.edu/) at Auburn University Physics Department.  
 Specific member contributors:
 - Jacob Duffy (Auburn University - Physics and Computer Science Departments: jod0007@auburn.edu)
 - Hussam Mustafa (Auburn University – Physics Department: hnm0037@auburn.edu)
