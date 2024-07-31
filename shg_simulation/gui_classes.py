@@ -1,6 +1,8 @@
 import numpy as np
 import types
 import platform
+from urllib.parse import quote
+import pathlib
 from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import matplotlib
@@ -50,9 +52,10 @@ class OSConfig:
         self.full_plt_dpi = 0
         self.full_plt_len = 0
         self.invalid_os = False
+        self.style_sheet = ''
         self.set_config()
 
-    def set_config(self):
+    def set_config(self) -> None:
         windows_config = {'fit_win_upld_box_len': 300, 'fit_win_upld_box_ht': 15,
                       'fit_res_mini_plt_dpi': 70, 'fit_res_mini_plt_r': 145, 'full_plt_dpi': 210,
                       'full_plt_len': 280}
@@ -88,6 +91,10 @@ class OSConfig:
             self.invalid_os = False
         else:
             self.invalid_os = True
+        file_name = f'{pathlib.Path(__file__).parent.resolve()}/style_sheets/{self.os.lower()}_styles.qss'
+        with open(file_name, 'r') as file:
+            self.style_sheet = file.read()
+        file.close()
     
 class CustomComboBox(QComboBox):
     box_signal = pyqtSignal(str)

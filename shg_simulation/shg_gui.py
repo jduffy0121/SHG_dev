@@ -1,26 +1,23 @@
 import sys
 import pathlib
-import os
 import pkg_resources
-import markdown
 import matplotlib.pyplot as plt
 from typing import List, Union, Tuple
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar, FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtWidgets import (
-    QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, QTableWidgetItem, QTableWidget,
-    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox,QRadioButton, QButtonGroup, QTextEdit, 
-    QTabWidget, QTextBrowser, QComboBox
-)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption, QDesktopServices
+from PyQt6.QtWidgets import (
+    QApplication, QWidget, QPushButton, QGridLayout, QLabel, QTableWidgetItem, QTableWidget, QComboBox,
+    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, QRadioButton, QButtonGroup, QTextEdit, 
+    QTabWidget, QTextBrowser
+)
 
 from .utils import *
 from .gui_classes import *
 from .data_fitting import *
+from .gui_html_boxes import *
 
-
-SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
-
+REPO_DIR = pathlib.Path(__file__).parent.parent.resolve()
 OS_CONFIG = OSConfig()
 
 class HelpWindow(QWidget):
@@ -33,46 +30,16 @@ class HelpWindow(QWidget):
         self.tabs.setTabPosition(QTabWidget.TabPosition.North)
         self.tabs.setMovable(False)
 
-        self.background_txt = QTextBrowser()
-        self.sim_txt = QTextBrowser()
-        self.about_txt = QTextBrowser()
-        self.background_txt.setReadOnly(True)
-        self.sim_txt.setReadOnly(True)
-        self.about_txt.setReadOnly(True)
-        self.background_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.sim_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.about_txt.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.set_txt_files()
-
-        self.background_txt.anchorClicked.connect(self.url_click)
-        self.sim_txt.anchorClicked.connect(self.url_click)
+        self.about_txt = create_about_us_tab(img=f'{REPO_DIR}/imgs/prev.png')
         self.about_txt.anchorClicked.connect(self.url_click)
 
-        self.tabs.addTab(self.background_txt, "Physics Background")
-        self.tabs.addTab(self.sim_txt, "How to use Simulation")
         self.tabs.addTab(self.about_txt, "About Us")
         self.layout.addWidget(self.tabs)
 
         self.setLayout(self.layout)
-
-        self.setFixedSize(self.layout.sizeHint())
-
-    def set_txt_files(self) -> None:
-        dir = [file for file in os.listdir(f'{SCRIPT_DIR}/ref_txt') if file[-3:] == '.md']
-        for readme_file in dir:
-            with open(f'{SCRIPT_DIR}/ref_txt/{readme_file}', 'r') as file: 
-                html_format = markdown.markdown(file.read())
-                if readme_file == 'background.md':
-                    self.background_txt.setHtml(html_format)
-                elif readme_file == 'sim.md': 
-                    self.sim_txt.setHtml(html_format)
-                else:
-                    self.about_txt.setHtml(html_format)
-            file.close()
-
+    
     def url_click(self, url):
         QDesktopServices.openUrl(url)
-        self.set_txt_files()
 
 class PlotWindow(QWidget):
     def __init__(self, channel: list, config, point_groups, parent=None) -> None:
@@ -755,7 +722,7 @@ class FitResults(QWidget):
 class FitWindow(QWidget): 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Fit Input")
+        self.setWindowTitle("Data Fitting")
         
         self.layout = QVBoxLayout()
         self.import_layout = QGridLayout()
@@ -852,7 +819,7 @@ class FitWindow(QWidget):
            
         prev_label = QLabel("Preview", alignment=Qt.AlignmentFlag.AlignCenter)
         prev_img = QLabel(self)
-        img_pixmap = QPixmap(f"{SCRIPT_DIR}/imgs/prev.png")
+        img_pixmap = QPixmap(f"{REPO_DIR}/imgs/prev.png")
         scaled_img = img_pixmap.scaled(200, 200)
         prev_img.setPixmap(scaled_img)
         layout.addWidget(prev_label)
@@ -1077,47 +1044,57 @@ class FitWindow(QWidget):
             self.help_win.close()
         event.accept()
 
-class FittingWindow(QWidget):
+class SimulationWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Fitting")
 
-class MainWindow(QMainWindow):
+class MainWindow(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent) 
         self.setWindowTitle("SHG")     
 
-        self.layout = QGridLayout()
+        self.layout = QVBoxLayout()
+        self.img_label = QLabel()
+        self.img = QPixmap(f'{REPO_DIR}/imgs/logo_full.png')
+        self.img_scaled = self.img.scaled(948,198)
+        self.img_label.setPixmap(self.img_scaled)
 
-        self.fit_label = QLabel("Fitting")
-        self.fit_desc = QLabel("Description")
-        self.fit_button = QPushButton("Select")
-        self.fit_button.clicked.connect(self.show_fitting_window)
-        self.layout.addWidget(self.fit_label, 0, 1)
-        self.layout.addWidget(self.fit_desc, 1, 1)
-        self.layout.addWidget(self.fit_button, 2, 1)
+        self.fit_desc = create_fit_desc()
+        self.sim_desc = create_sim_desc()
+        self.desc_layout = QHBoxLayout()
+        self.desc_layout.addWidget(self.fit_desc)
+        self.desc_layout.addWidget(self.sim_desc)
+        
+        self.help_button = QPushButton('ⓘ')
+        self.sim_button = QPushButton('Simulation')
+        self.fit_button = QPushButton('Data Fitting')
+        self.sim_button.clicked.connect(self.show_simulation_win)
+        self.fit_button.clicked.connect(self.show_fitting_win)
+        self.help_button.clicked.connect(self.show_help_win)
 
-        self.sim_label = QLabel("Simulation")
-        self.sim_desc = QLabel("Description")
-        self.sim_button = QPushButton(text="Select", parent=self)
-        self.sim_button.clicked.connect(self.show_simulation_window)
-        self.layout.addWidget(self.sim_label, 0, 0)
-        self.layout.addWidget(self.sim_desc, 1, 0)
-        self.layout.addWidget(self.sim_button, 2, 0)
+        self.button_layout = QVBoxLayout()
+        self.button_layout.addWidget(self.fit_button)
+        self.button_layout.addWidget(self.sim_button)
+        self.button_layout.addWidget(self.help_button)
+        self.desc_layout.addLayout(self.button_layout) 
 
-        self.set_layout = QWidget()
-        self.set_layout.setLayout(self.layout)
-        self.setCentralWidget(self.set_layout)
+        self.layout.addWidget(self.img_label)
+        self.layout.addLayout(self.desc_layout)
+        #self.layout.addLayout(self.button_layout)
+
+        self.setLayout(self.layout)
 
         self.setFixedSize(self.layout.sizeHint())
-        
-    def show_simulation_window(self) -> None:
-        #self.win = FitWindow()
-        #self.win.show()
-        #self.close()
+
+    def show_help_win(self) -> None:
+        self.win = HelpWindow()
+        self.win.show()
+
+    def show_simulation_win(self) -> None:
         return
 
-    def show_fitting_window(self) -> None:
+    def show_fitting_win(self) -> None:
         self.win = FitWindow()
         self.win.show()
         self.close()
@@ -1128,6 +1105,7 @@ def main():
         print("Supported operating systems: Windows, macOS, and Linux.")
         return
     app = QApplication(sys.argv)
+    #QApplication.instance().setStyleSheet(OS_CONFIG.style_sheet)
     window = MainWindow()
     window.show()
     app.exec()
