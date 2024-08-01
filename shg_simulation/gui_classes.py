@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import matplotlib
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QComboBox
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QComboBox, QWidget, QLabel, QCheckBox, QRadioButton
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF
 from PyQt6.QtGui import QPainterPath, QRegion, QColor
 
@@ -93,9 +93,51 @@ class OSConfig:
             self.invalid_os = True
         file_name = f'{pathlib.Path(__file__).parent.resolve()}/style_sheets/{self.os.lower()}_styles.qss'
         with open(file_name, 'r') as file:
-            self.style_sheet = file.read()
+            self.style_sheet = file.read() 
         file.close()
-    
+
+class TableCheckBox(QCheckBox):
+    def __init__(self, text=None):
+        super().__init__()
+        self.setText(text)
+        self.setStyleSheet('background-color: #171717')
+
+    def setSelected(self, selected):
+        if selected:
+            self.setStyleSheet('background-color: #565656')
+        else:
+            self.setStyleSheet('background-color: #171717')
+
+class TableLabel(QLabel):
+    def __init__(self, text=None):
+        super().__init__()
+        self.setText(text)
+        self.setStyleSheet('background-color: #171717')
+
+    def setSelected(self, selected):
+        if selected:
+            self.setStyleSheet('background-color: #565656')
+        else:
+            self.setStyleSheet('background-color: #171717')
+
+class GroupLabel(QLabel):
+    def __init__(self, text=None):
+        super().__init__()
+        self.setText(text)
+        self.setStyleSheet('background-color: #303030')
+
+class GroupRadioButton(QRadioButton):
+    def __init__(self, text):
+        super().__init__()
+        self.setText(text)
+        self.setStyleSheet('background-color: #303030')
+
+class GroupCheckBox(QCheckBox):
+    def __init__(self, text):
+        super().__init__()
+        self.setText(text)
+        self.setStyleSheet('background-color: #303030')
+        
 class CustomComboBox(QComboBox):
     box_signal = pyqtSignal(str)
     def __init__(self):

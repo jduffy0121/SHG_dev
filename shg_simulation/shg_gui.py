@@ -9,7 +9,7 @@ from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption, QDesktopServices
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QPushButton, QGridLayout, QLabel, QTableWidgetItem, QTableWidget, QComboBox,
     QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, QRadioButton, QButtonGroup, QTextEdit, 
-    QTabWidget, QTextBrowser
+    QTabWidget, QTextBrowser, QGroupBox, QStackedLayout, QScrollArea
 )
 
 from .utils import *
@@ -130,59 +130,68 @@ class FitResults(QWidget):
         super().__init__(parent)
         self.setWindowTitle("Fit Results")
         self.layout = QGridLayout()
-        
+        self.img_label = QLabel()
+        self.img = QPixmap(f'{REPO_DIR}/imgs/logo_mini.png')
+        self.img_scaled = self.img.scaled(136,68)
+        self.img_label.setPixmap(self.img_scaled) 
+
         self.config = config
         self.manager = FitManager()
+        self.manager.selection_mode == 'Single'
         init_fit_classes(config=self.config, manager=self.manager)
        
         self.tabs_layout, self.fit_button_group, self.legend_button_group, self.param_button_group = self.win_create_fit_tabs_layer(init_tabs=True)
 
-        self.no_plots = QLabel(f"\t\tSelect plots to continue\t\t")
-        self.expand_plots_button = QPushButton(">")
-        self.expand_plots_button.clicked.connect(self.expand_plots_button_clicked)
-        self.expand_plots_button.setToolTip('Manage plots and selection')
+        self.no_plots = TableLabel(f"Select plots to continue")
 
-        self.sel_chan_txt = QLabel(f"Selection mode: {self.manager.selection_mode}\nSelected channel(s): None", alignment=Qt.AlignmentFlag.AlignRight)
+        self.sel_chan_txt = QLabel(f"Selection mode: {self.manager.selection_mode}\nSelected channel(s): None")
+        self.sel_chan_txt.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         self.add_button_layout, self.add_button_group, self.swap_button_group = self.win_create_add_plot_layer()
         self.plot_layout, self.full_button_group, self.close_button_group = self.win_create_plot_layer(channels=self.config.channels)
         
-        self.no_layout = QVBoxLayout()
-        self.no_layout.addWidget(self.no_plots)
-        self.expand_layout = QHBoxLayout()
-        self.expand_layout.addWidget(self.expand_plots_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.no_layout = QGridLayout()
+        self.no_layout.addWidget(self.no_plots, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        #self.no_layout.addWidget(self.sel_chan_txt, 0, 0, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.expand_layout = self.win_create_expand_layer()
+        self.expand_layout.setCurrentIndex(0)
+        self.group_box_1 = QGroupBox()
+        self.area = QScrollArea()
+        self.area.setFixedSize(500,550)
+        self.area.setLayout(self.no_layout)
+        self.layout_new = QGridLayout()
+        self.layout_new.addWidget(self.area, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        #self.layout_new.addWidget(self.sel_chan_txt, 0, 0, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.group_box_1.setLayout(self.layout_new)
+        self.group_box_1.setFixedSize(550,600)
+        self.area = QScrollArea()
+        self.area.setFixedSize(500,575)
+        self.widget = QWidget()
+        self.widget.setLayout(self.tabs_layout)
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.widget, 'INIT')
+        self.label2 = QLabel("HI")
+        self.tabs.addTab(self.label2, 'INIT2')
+        self.tabs.setFixedWidth(525)
+        self.group_box_2 = QGroupBox()
+        self.tabs_layout = QVBoxLayout()
+        self.tabs_layout.addWidget(self.tabs)
+        self.group_box_2.setLayout(self.tabs_layout)
         
-        self.redo_button = QPushButton('↻')
-        self.redo_button.setToolTip('Reset all fits for all channels/point groups')
+        self.back_button = QPushButton("Back")
+        self.back_button.setFixedSize(70,25)
 
-        self.help_button = QPushButton("✹")
-        #self.help_button.clicked.connect(self.open_help_win)
-        self.help_button.setToolTip('Visualizations')
-
-        self.download_button = QPushButton("⤓")
-        self.download_button.setToolTip('Download fit data as .csv')
-        self.download_button.setEnabled(False)
-
-        self.fitting_button = QPushButton('፨')
-        self.fitting_button.setToolTip('Point group information')
-
-        self.more_layout = QVBoxLayout()
-        self.more_layout.addWidget(self.help_button)
-        self.more_layout.addWidget(self.fitting_button)
-        self.more_layout.addWidget(self.download_button)
-        self.more_layout.addWidget(self.redo_button)
-        self.more_layout.addLayout(self.expand_layout)
-
-        self.layout.addLayout(self.tabs_layout, 0, 0, 2, 1)
-        self.layout.addLayout(self.more_layout, 0, 1, 2, 1, alignment=Qt.AlignmentFlag.AlignBottom)
-        self.layout.addLayout(self.no_layout, 0, 2, alignment=Qt.AlignmentFlag.AlignBottom)
-        self.layout.addLayout(self.plot_layout, 0, 2)
-        self.layout.addWidget(self.sel_chan_txt, 1, 2, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.layout.addWidget(self.group_box_2, 0, 0, 2, 1)
+        self.layout.addLayout(self.expand_layout, 1, 1, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.layout.addWidget(self.group_box_1, 1, 2, alignment=Qt.AlignmentFlag.AlignTop)
+        self.layout.addWidget(self.back_button, 3, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.layout.addWidget(self.img_label, 0, 2, alignment=Qt.AlignmentFlag.AlignRight)
+        self.layout.addWidget(self.sel_chan_txt, 3, 2, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
 
         self.help_win = None
 
         self.setLayout(self.layout)
-        self.setFixedSize(1350,750)   
+        self.setFixedSize(self.layout.sizeHint())   
         
         self.clear_plots()
         self.manager.plots_showing = []
@@ -222,6 +231,116 @@ class FitResults(QWidget):
             layout.addWidget(fit_table)
         return layout, fit_check_groups, legend_groups, params_groups
 
+    def win_create_expand_layer(self) -> QStackedLayout:
+        layout = QStackedLayout()
+        group_box_1 = QGroupBox()
+        layout_1 = QVBoxLayout()
+        visuals_button_1 = QPushButton('✹')
+        visuals_button_1.setToolTip('Visualizations')
+        visuals_button_2 = QPushButton('✹')
+        visuals_button_2.setToolTip('Visualizations')
+        download_button_1 = QPushButton('⤓')
+        download_button_1.setToolTip('Download fit data as .csv')
+        download_button_2 = QPushButton('⤓')
+        download_button_2.setToolTip('Download fit data as .csv')
+        group_button_1 = QPushButton('፨')
+        group_button_1.setToolTip('Point group information no cap')
+        group_button_2 = QPushButton('፨')
+        group_button_2.setToolTip('Point group information lol')
+        redo_button_1 = QPushButton('↻')
+        redo_button_1.setToolTip('Reset all fits for all channels/point groups')
+        redo_button_2 = QPushButton('↻')
+        redo_button_2.setToolTip('Reset all fits for all channels/point groups')
+        expand_button = QPushButton('>')
+        expand_button.setToolTip('Show plot manager')
+        expand_button.clicked.connect(self.toggle_stack)
+        retract_button = QPushButton('<')
+        retract_button.setToolTip('Hide plot manager')
+        retract_button.clicked.connect(self.toggle_stack)
+        
+        layout_1.addWidget(visuals_button_1, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout_1.addWidget(download_button_1, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout_1.addWidget(group_button_1, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout_1.addWidget(redo_button_1, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout_1.addWidget(expand_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        group_box_1.setLayout(layout_1)
+        group_box_1.setFixedSize(75,200)
+        
+        retract_widget = QWidget()
+        retract_layout = QVBoxLayout()
+        retract_layout.addWidget(group_box_1, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+        retract_widget.setLayout(retract_layout)
+
+        expand_layout = QVBoxLayout()
+        add_button_group = QButtonGroup()
+        swap_button_group = QButtonGroup()
+        button_id = 0
+        header_label = GroupLabel('Manage plots')
+        expand_layout.addWidget(header_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        for channel in self.config.channels:
+            if channel == "Parallel":
+                label = GroupLabel('||')
+            elif channel == "Perpendicular":
+                label = GroupLabel('⊥')
+            else:
+                label = GroupLabel(f'{channel}')
+            sub_layout = QHBoxLayout()
+            sub_layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignRight)
+            button_layout = QVBoxLayout()
+            add_button = QPushButton('+')
+            add_button.clicked.connect(self.add_button_clicked) 
+            add_button.setToolTip('Add plot')
+            add_button_group.setId(add_button, button_id)
+            swap_button = QPushButton('⇆')
+            swap_button.clicked.connect(self.swap_button_clicked)
+            swap_button.setToolTip('Swap with current selected (only works with single selection)')
+            swap_button_group.setId(swap_button, button_id)
+            button_layout.addWidget(add_button)
+            button_layout.addWidget(swap_button)
+            sub_layout.addLayout(button_layout)
+            button_id = button_id + 1
+            if self.manager.plots_showing is not None:
+                if channel in self.manager.plots_showing:
+                    add_button.setEnabled(False)
+            expand_layout.addLayout(sub_layout)
+        data_color_label = GroupLabel('Choose data points color')
+        data_color_box = CustomComboBox()
+        data_color_box.addItems(['Blue', 'Red', 'Green', 'Orange', 'Purple', 'Brown'])
+        selection_mode_label = GroupLabel('Choose selection mode')
+        selection_mode_box = CustomComboBox()
+        selection_mode_box.addItems(['Single', 'Multiple'])
+        if self.manager.selection_mode == 'Multiple':
+            selection_mode_box.setCurrentIndex(1)
+        selection_mode_box.box_signal.connect(self.selection_mode_changed)
+        expand_layout.addWidget(data_color_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        expand_layout.addWidget(data_color_box)
+        expand_layout.addWidget(selection_mode_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        expand_layout.addWidget(selection_mode_box)
+
+        group_box_2 = QGroupBox()
+        layout_2 = QVBoxLayout()
+        layout_2.addWidget(visuals_button_2, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout_2.addWidget(download_button_2, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout_2.addWidget(group_button_2, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout_2.addWidget(redo_button_2, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout_2.addWidget(retract_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        group_box_2.setLayout(layout_2)
+        group_box_2.setFixedSize(75,200)
+
+        group_box_3 = QGroupBox()
+        group_box_3.setLayout(expand_layout)
+        group_box_3.setFixedWidth(200)
+        
+        expand_widget_2 = QWidget()
+        expand_layout_2 = QHBoxLayout()
+        expand_layout_2.addWidget(group_box_2, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+        expand_layout_2.addWidget(group_box_3, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+        expand_widget_2.setLayout(expand_layout_2)
+
+        layout.addWidget(retract_widget)
+        layout.addWidget(expand_widget_2)
+
+        return layout
 
     def win_create_plot_layer(self, channels: list) -> (QGridLayout(), QButtonGroup(), QButtonGroup()):
         layout = QGridLayout()
@@ -323,6 +442,11 @@ class FitResults(QWidget):
         layout.addWidget(selection_mode_label, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(selection_mode_box)
         return layout, add_button_group, swap_button_group
+
+    def toggle_stack(self) -> None:
+        current_index = self.expand_layout.currentIndex()
+        new_index = 1 - current_index
+        self.expand_layout.setCurrentIndex(new_index)
 
     def full_button_clicked(self) -> None:
         button = self.sender()
@@ -524,9 +648,11 @@ class FitResults(QWidget):
         fit_check_group.setExclusive(False)
         if not init_tabs:
             for i in range(num_of_rows):
-                check_box = QCheckBox()
+                check_box = TableCheckBox()
                 check_box.clicked.connect(self.fit_button_clicked)
                 fit_check_group.addButton(check_box, group_indexes[i])
+                check_box_item = QTableWidgetItem()
+                fit_table.setItem(i, 0, check_box_item)
                 fit_table.setCellWidget(i, 0, check_box)
                 point_group = self.manager.point_groups[group_indexes[i]]
                 if point_group.active:
@@ -537,7 +663,9 @@ class FitResults(QWidget):
                     point_group_formatted = point_group.name.replace('_', '<sub>') + '</sub>'
                 else:
                     point_group_formatted = point_group.name
-                label = QLabel(point_group_formatted)
+                label = TableLabel(point_group_formatted)
+                label_item = QTableWidgetItem()
+                fit_table.setItem(i, 1, label_item)
                 fit_result = QTableWidgetItem(str(round(point_group.r2, 3)))
                 fit_result.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
                 fit_table.setCellWidget(i, 1, label)
@@ -553,9 +681,19 @@ class FitResults(QWidget):
                 button.clicked.connect(self.param_button_clicked)
                 fit_table.setCellWidget(i, 4, button)
                 params_group.addButton(button, group_indexes[i])
-        
+        #fit_table.setFixedWidth(500) 
         fit_table.horizontalHeader().setStretchLastSection(True)
+        fit_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        fit_table.itemSelectionChanged.connect(lambda: self.update_table(fit_table))
         return fit_table, fit_check_group, legend_group, params_group
+
+    def update_table(self, table_widget):
+        for row in range(table_widget.rowCount()):
+            for col in range(table_widget.columnCount()):
+                table_item = table_widget.cellWidget(row, col)
+                if isinstance(table_item, TableCheckBox) or isinstance(table_item, TableLabel):
+                    item = table_widget.item(row, col)
+                    table_item.setSelected(item.isSelected())
     
     def fit_button_clicked(self) -> None:
         button = self.sender()
@@ -620,7 +758,7 @@ class FitResults(QWidget):
         self.update_selections()
 
     def update_selections(self, disable_swap = False) -> None:
-        text = self.layout.itemAtPosition(1,2).widget()
+        text = self.layout.itemAtPosition(1,3).widget()
         self.layout.removeWidget(text)
         text.deleteLater()
         text.setParent(None)
@@ -641,7 +779,7 @@ class FitResults(QWidget):
             label = f"{', '.join(self.manager.selected_channels)}"
             self.download_button.setEnabled(True)
         self.sel_chan_txt = QLabel(f"Selection mode: {self.manager.selection_mode}\nSelected channel(s): {label}", alignment=Qt.AlignmentFlag.AlignRight)
-        self.layout.addWidget(self.sel_chan_txt, 1, 2, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.layout.addWidget(self.sel_chan_txt, 1, 3, alignment=Qt.AlignmentFlag.AlignBottom)
         self.setLayout(self.layout)
         if self.manager.expanded_window:
             for channel in self.config.channels:
@@ -722,13 +860,18 @@ class FitResults(QWidget):
 class FitWindow(QWidget): 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Data Fitting")
+        self.setWindowTitle("Data Import")
         
-        self.layout = QVBoxLayout()
+        self.layout = QGridLayout()
         self.import_layout = QGridLayout()
-
-        self.header_label = QLabel("Please import your data:")
-        self.layout.addWidget(self.header_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        self.header_label = QLabel("<h1>Import Data for Fit</h1>") 
+        self.img_label = QLabel()
+        self.img = QPixmap(f'{REPO_DIR}/imgs/logo_mini.png')
+        self.img_scaled = self.img.scaled(136,68)
+        self.img_label.setPixmap(self.img_scaled)
+        self.layout.addWidget(self.header_label, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.img_label, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft)
 
         self.channels_trans = ["||", "⊥"]
         self.channels_reflec = ["SS", "PP", "SP", "PS"]
@@ -744,13 +887,11 @@ class FitWindow(QWidget):
         self.run_button = QPushButton("Run")
         self.run_button.clicked.connect(self.run_sim)
         self.run_button.setEnabled(False)
+        self.run_button.setFixedSize(70,25)
 
         self.back_button = QPushButton("Back")
         self.back_button.clicked.connect(self.back_to_main)
-
-        self.help_button = QPushButton("ⓘ")
-        self.help_button.setToolTip('Information')
-        self.help_button.clicked.connect(self.open_help_win)
+        self.back_button.setFixedSize(70,25)
 
         self.data_layout, self.data_button_group, self.upload_group = self.win_create_data_layer_group()
         self.geo_layout, self.geo_button_group = self.win_create_new_layer(list_itr=self.geos,
@@ -766,24 +907,24 @@ class FitWindow(QWidget):
                                                                            text_label="Lattice Plane")
         
         self.config_layout = self.win_create_config_layer_group()
-        self.import_layout.addLayout(self.data_layout, 0, 0)
+        self.import_layout.addWidget(self.data_layout, 0, 0)
         self.import_layout.addLayout(self.config_layout, 0, 1)
-        
-        self.layout.addLayout(self.import_layout)
+         
+        self.layout.addLayout(self.import_layout, 1, 0)
+
+        self.layout.addWidget(self.run_button, 2, 0, alignment=Qt.AlignmentFlag.AlignRight)
+        self.layout.addWidget(self.back_button, 2, 0, alignment=Qt.AlignmentFlag.AlignLeft)
         self.setLayout(self.layout)
         
         self.valid_channels = None
-        self.help_win = None
 
         self.setFixedSize(self.layout.sizeHint())
 
-    def win_create_data_layer_group(self) -> (QVBoxLayout(), QButtonGroup(), QButtonGroup()):
+    def win_create_data_layer_group(self) -> (QGroupBox, QButtonGroup(), QButtonGroup()):
         layout = QVBoxLayout()
-        label = QLabel("Import Data", alignment=Qt.AlignmentFlag.AlignCenter)
-        sub_label = QLabel("Please select file location(s)")
-        layout.addWidget(label)
-        layout.addWidget(sub_label)
-        
+        label = GroupLabel("<h3>File Upload</h3>")
+        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
+    
         data_button_group = QButtonGroup()
         upload_group = QButtonGroup()
         data_button_group.setExclusive(False)
@@ -791,7 +932,12 @@ class FitWindow(QWidget):
         button_id = 0
         for chan in self.channels: 
             d_chan_layout = QHBoxLayout()
-            box = QCheckBox(f"{chan}")
+            if chan == '||':
+                box = GroupCheckBox(f"{chan}   ")
+            elif chan == '⊥':
+                box = GroupCheckBox(f"{chan}  ")
+            else:
+                box = GroupCheckBox(f"{chan}")
             box.clicked.connect(self.chan_button_clicked)
 
             text = QTextEdit(self)
@@ -807,39 +953,41 @@ class FitWindow(QWidget):
             upload_group.addButton(upload)
             upload_group.setId(upload, button_id)
 
+            view = QPushButton('⤢')
+            view.setEnabled(False)
+
             d_chan_layout.addWidget(box)
             d_chan_layout.addWidget(text)
             d_chan_layout.addWidget(upload)
+            d_chan_layout.addWidget(view)
 
             data_button_group.addButton(box) 
             data_button_group.setId(box, button_id)
 
             layout.addLayout(d_chan_layout)
             button_id = button_id+1
-           
-        prev_label = QLabel("Preview", alignment=Qt.AlignmentFlag.AlignCenter)
-        prev_img = QLabel(self)
-        img_pixmap = QPixmap(f"{REPO_DIR}/imgs/prev.png")
-        scaled_img = img_pixmap.scaled(200, 200)
-        prev_img.setPixmap(scaled_img)
-        layout.addWidget(prev_label)
-        layout.addWidget(prev_img, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        help_button = QPushButton('?')
+        layout.addWidget(help_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        return layout, data_button_group, upload_group
+        group_box = QGroupBox()
+        group_box.setLayout(layout)
+
+        return group_box, data_button_group, upload_group
 
     def win_create_new_layer(self, list_itr: List[str], 
-                             text_label: str, exclusive: bool=True) -> (QVBoxLayout(), QButtonGroup()):
+                             text_label: str, exclusive: bool=True) -> (QGroupBox, QButtonGroup()):
         layout = QVBoxLayout()
-        label = QLabel(f"{text_label}")
+        label = GroupLabel(f"<h3>{text_label}</h3>")
         layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
         button_group = QButtonGroup()
         button_group.setExclusive(exclusive)
         button_id = 0
         for button_label in list_itr:
             if exclusive:
-                button = QRadioButton(f"{button_label}")
+                button = GroupRadioButton(f"{button_label}")
             else:
-                button = QCheckBox(f"{button_label}")
+                button = GroupCheckBox(f"{button_label}")
             layout.addWidget(button)
             button_group.addButton(button)
             button_group.setId(button, button_id)
@@ -849,25 +997,24 @@ class FitWindow(QWidget):
             elif text_label == "Channels":
                 button.toggled.connect(self.chan_button_clicked)
             else:
-                button.toggled.connect(self.test_button_groups) 
-        return layout, button_group
+                button.toggled.connect(self.test_button_groups)
+        group_box = QGroupBox()
+        group_box.setLayout(layout)
+        return group_box, button_group
 
     def win_create_config_layer_group(self) -> QGridLayout():
         layout = QGridLayout()
-        layout.addLayout(self.geo_layout, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.chan_layout, 1, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.source_layout, 2, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.sys_layout, 3, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(self.lat_layout, 4, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(self.run_button, 5, 0)
-        layout.addWidget(self.back_button, 6, 0)
-        layout.addWidget(self.help_button, 7, 0)
+        layout.addWidget(self.geo_layout, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.source_layout, 2, 0, 1, 2, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.sys_layout, 1, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.chan_layout, 1, 1, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.lat_layout, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
         return layout
 
     def upload_files(self) -> None:
         button = self.sender()
         button_id = self.upload_group.id(button)
-        text_box = self.data_layout.itemAt(button_id+2).layout().itemAt(1).widget()
+        text_box = self.data_layout.layout().itemAt(button_id+1).layout().itemAt(1).widget()
         file = QFileDialog.getOpenFileName(self, 'Open file', '','csv files (*.csv)')
         text_box.clear()
         if not file[0]:
@@ -877,6 +1024,9 @@ class FitWindow(QWidget):
             self.data_files[button_id] = file[0]
         self.test_button_groups()
 
+    def data_help_button_clicked(self) -> None:
+        return
+
     def trans_button_clicked(self) -> None:
         i = 0
         for button in self.data_button_group.buttons() + self.chan_button_group.buttons():
@@ -884,7 +1034,7 @@ class FitWindow(QWidget):
                 button.setChecked(False)
                 button.setEnabled(False)
                 if i < 6:
-                    text_box = self.data_layout.itemAt(i+2).layout().itemAt(1).widget()
+                    text_box = self.data_layout.layout().itemAt(i+1).layout().itemAt(1).widget()
                     text_box.clear()
                     self.data_files[i] = None
                     self.upload_group.buttons()[i].setEnabled(False)
@@ -902,7 +1052,7 @@ class FitWindow(QWidget):
                 button.setChecked(False)
                 button.setEnabled(False)
                 if i < 6:
-                    text_box = self.data_layout.itemAt(i+2).layout().itemAt(1).widget()
+                    text_box = self.data_layout.layout().itemAt(i+1).layout().itemAt(1).widget()
                     text_box.clear()
                     self.data_files[i] = None
                     self.upload_group.buttons()[i].setEnabled(False)
@@ -973,6 +1123,7 @@ class FitWindow(QWidget):
         self.run_button.setEnabled(False)
         config = self.get_current_inputs()
         if isinstance(config, FitConfig):
+            print(config)
             self.config_win = FitResults(config=config)
             self.config_win.show()
         else:
@@ -1035,15 +1186,6 @@ class FitWindow(QWidget):
         self.win.show()
         self.close()
 
-    def open_help_win(self) -> None:
-        self.help_win = HelpWindow()
-        self.help_win.show()
-
-    def closeEvent(self, event) -> None:
-        if self.help_win is not None and self.help_win.isVisible():
-            self.help_win.close()
-        event.accept()
-
 class SimulationWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1052,7 +1194,7 @@ class SimulationWindow(QWidget):
 class MainWindow(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent) 
-        self.setWindowTitle("SHG")     
+        self.setWindowTitle("SHG_Package_Name")     
 
         self.layout = QVBoxLayout()
         self.img_label = QLabel()
@@ -1062,26 +1204,45 @@ class MainWindow(QWidget):
 
         self.fit_desc = create_fit_desc()
         self.sim_desc = create_sim_desc()
+        self.sim_desc.anchorClicked.connect(self.url_click)
+        self.fit_desc.anchorClicked.connect(self.url_click)
+        self.package_label = GroupLabel(f'<h1>SHG_Package_Name</h1>')
+        self.vers_label = GroupLabel(f"<i><font size='-1'>Version: {pkg_resources.get_distribution('shg_simulation').version}</font></i>")
         self.desc_layout = QHBoxLayout()
         self.desc_layout.addWidget(self.fit_desc)
         self.desc_layout.addWidget(self.sim_desc)
-        
-        self.help_button = QPushButton('ⓘ')
+        self.package_layout = QVBoxLayout()
+        self.package_layout.addWidget(self.package_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.package_layout.addWidget(self.vers_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.package_layout.addWidget(GroupLabel())
+
+        self.help_button = QPushButton('More Information')
         self.sim_button = QPushButton('Simulation')
         self.fit_button = QPushButton('Data Fitting')
         self.sim_button.clicked.connect(self.show_simulation_win)
+        self.sim_button.setEnabled(False)
         self.fit_button.clicked.connect(self.show_fitting_win)
         self.help_button.clicked.connect(self.show_help_win)
 
-        self.button_layout = QVBoxLayout()
+        self.button_layout = QHBoxLayout()
         self.button_layout.addWidget(self.fit_button)
         self.button_layout.addWidget(self.sim_button)
         self.button_layout.addWidget(self.help_button)
-        self.desc_layout.addLayout(self.button_layout) 
+        
+        self.sub_desc_layout = QHBoxLayout()
+        self.sub_desc_layout.addWidget(self.fit_desc)
+        self.sub_desc_layout.addWidget(self.sim_desc)
+
+        self.desc_layout = QVBoxLayout()
+        self.desc_layout.addLayout(self.package_layout)
+        self.desc_layout.addLayout(self.sub_desc_layout)
+        self.desc_layout.addLayout(self.button_layout)
+
+        self.group_box = QGroupBox()
+        self.group_box.setLayout(self.desc_layout)
 
         self.layout.addWidget(self.img_label)
-        self.layout.addLayout(self.desc_layout)
-        #self.layout.addLayout(self.button_layout)
+        self.layout.addWidget(self.group_box)
 
         self.setLayout(self.layout)
 
@@ -1099,13 +1260,16 @@ class MainWindow(QWidget):
         self.win.show()
         self.close()
 
+    def url_click(self, url):
+        QDesktopServices.openUrl(url)
+
 def main():
     if OS_CONFIG.invalid_os == True:
         print(f"Version {pkg_resources.get_distribution('shg_simulation').version} of SHG Simulation Package is not supported on this operating system.")
         print("Supported operating systems: Windows, macOS, and Linux.")
         return
     app = QApplication(sys.argv)
-    #QApplication.instance().setStyleSheet(OS_CONFIG.style_sheet)
+    QApplication.instance().setStyleSheet(OS_CONFIG.style_sheet)
     window = MainWindow()
     window.show()
     app.exec()

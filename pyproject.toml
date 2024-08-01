@@ -16,11 +16,10 @@ license = "LICENSE.txt"
 python = "^3.10"
 pyqt6 = "^6.7.0"
 pandas = "^2.2.2"
-markdown = "^3.6"
 numpy = "^2.0.0"
 matplotlib = "^3.9.1"
-sip = "^6.8.6"
 scipy = "^1.14.0"
+cffi = "^1.16.0"
 
 [build-system]
 requires = ["poetry-core"]
