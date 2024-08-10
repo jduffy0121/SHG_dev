@@ -1,4 +1,4 @@
 .DS_Store
 **/__pycache__/
-/data/custom_crystals.yaml
-/fits/custom_fits.yaml
+shg_simulation/data/custom_crystals.yaml
+shg_simulation/fits/custom_fits.yaml
