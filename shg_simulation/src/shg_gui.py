@@ -955,7 +955,7 @@ def main():
             user_input = input("Selection: ")
             if user_input == '0':
                 pull_missing_files()
-                return 
+                main() 
             elif user_input == 'q':
                 return
     OS_CONFIG.set_config()

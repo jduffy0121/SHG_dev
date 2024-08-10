@@ -84,4 +84,5 @@ def pull_missing_files() -> None:
     git_url = 'https://github.com/jduffy0121/SHG_dev.git'
     repo = git.Repo(PACKAGE_DIR)
     repo.remotes.origin.fetch()
-    repo.git.reset('--hard', 'origin/main') 
+    repo.git.reset('--hard', 'origin/main')
+    print('Repository files successfully recovered.\nRestarting program...')
