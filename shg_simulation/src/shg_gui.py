@@ -636,6 +636,43 @@ class SimRemoveCrystal(QWidget):
         self.set_button_clicks()
         self.crystal_type_change()
 
+class SimKeyWin(QWidget):
+    signal = pyqtSignal(bool)
+    def __init__(self, parent=None) -> None: #Init the window
+        super().__init__(parent)
+        self.setWindowTitle("Upload Key")
+        self.layout = sim_key_upload_layout()
+        self.set_button_clicks()
+        self.setLayout(self.layout)
+
+    def set_button_clicks(self):
+        self.layout.itemAt(0).widget().layout().itemAt(1).widget().clicked.connect(self.add_button_clicked)
+
+    def add_button_clicked(self):
+        self.layout.itemAt(0).widget().layout().itemAt(1).widget().setEnabled(False)
+        key = self.layout.itemAt(0).widget().layout().itemAt(0).widget().text()
+        
+        valid_key = test_api_key(key=key)
+
+        self.signal.emit(valid_key)
+
+        message = QMessageBox(self)
+        message.setWindowTitle('')
+
+        if valid_key:
+            message.setText(f'Valid API key was uploaded.\n\nKey has been stored locally in ~/configs/materials_project_api_key.txt')
+            with open(f'{REPO_DIR}/configs/materials_project_api_key.txt', 'w') as file:
+                file.write(key)
+            file.close()
+        else:
+            message.setText(f'Unable to read API key.\n\nPlease try again.')
+
+        message.setIcon(QMessageBox.Icon.NoIcon) 
+        message.addButton(QMessageBox.StandardButton.Close)
+        message.exec()
+        
+        self.layout.itemAt(0).widget().layout().itemAt(1).widget().setEnabled(True)
+
 class SimAddCrystal(QWidget):
     signal = pyqtSignal()
     def __init__(self, parent=None) -> None: #Init the window
@@ -647,9 +684,12 @@ class SimAddCrystal(QWidget):
         self.setFixedSize(self.layout.sizeHint())
 
         self.additional_win = None
+        self.key_win = None
 
     def set_button_clicks(self):
         self.layout.itemAtPosition(3,0).layout().itemAt(0).widget().clicked.connect(self.show_help_win)
+        self.layout.itemAtPosition(3,0).layout().itemAt(1).widget().clicked.connect(self.key_button_clicked)
+        self.layout.itemAtPosition(3,0).layout().itemAt(2).widget().clicked.connect(self.search_button_clicked)
         for i in range(3):
             self.layout.itemAtPosition(0,0).widget().layout().itemAt(i).widget().clicked.connect(self.crystal_type_change)
 
@@ -662,10 +702,31 @@ class SimAddCrystal(QWidget):
         self.additional_win = AdditionalWindow(win_type='add crystals')
         self.additional_win.show()
 
+    def search_button_clicked(self):
+        pass
+
+    def key_button_clicked(self):
+        self.key_win = SimKeyWin()
+        self.key_win.signal.connect(self.update_key_text)
+        self.key_win.show()
+
+    def update_key_text(self, value):
+        if value:
+            self.layout.itemAtPosition(2,0).widget().layout().itemAt(1).widget().setText('API Key: <span style="color: green;">Valid</span>')
+        else:
+            self.layout.itemAtPosition(2,0).widget().layout().itemAt(1).widget().setText('API Key: <span style="color: red;">None</span>')
+
     def closeEvent(self, event) -> None:
         if self.additional_win is not None and self.additional_win:
             self.additional_win.close()
+        if self.key_win is not None and self.key_win:
+            self.key_win.close()
         event.accept()
+
+class SimSearchResults(QWidget):
+    def __init__(self, crystal=str, parent=None) -> None: #Init the window
+        super().__init__(parent)
+        self.setWindowTitle("Search Results")
 
 class SimSelection(QWidget):
     def __init__(self, parent=None) -> None: #Init the window

@@ -84,6 +84,9 @@ QTabBar::tab:selected {
   border-color: #171717;
   border-bottom-color: transparent; 
 }
+QMessageBox {
+  background-color: #171717;
+}
 QTableWidget {
   background: #171717;
   border: 1px solid #3f3f3f; 

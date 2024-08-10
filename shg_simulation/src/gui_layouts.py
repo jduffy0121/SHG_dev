@@ -345,6 +345,18 @@ def sim_crystal_remove_layout() -> QVBoxLayout:
 
     return layout
 
+def sim_key_upload_layout() -> QVBoxLayout:
+    layout = QVBoxLayout()
+    sub_layout = QVBoxLayout()
+    box = QLineEdit()
+    button = QPushButton("Upload")
+    sub_layout.addWidget(box)
+    sub_layout.addWidget(button)
+    group_box = QGroupBox()
+    group_box.setLayout(sub_layout)
+    layout.addWidget(group_box)
+    return layout
+
 def sim_crystal_add_layout() -> (QVBoxLayout, QButtonGroup, QButtonGroup):
     layout = QGridLayout()
     types_layout = QVBoxLayout()
@@ -390,38 +402,63 @@ def sim_crystal_add_layout() -> (QVBoxLayout, QButtonGroup, QButtonGroup):
     box_layout.addWidget(binary_boxes)
     box_layout.addWidget(tertiary_boxes)
     layout.addLayout(box_layout, 0, 1, 3, 1)
-
-    add_button = QPushButton("Search Materials Project Database")
+    
+    add_button = QPushButton("Add Crystal Results")
     add_button.setFixedHeight(22)
+    search_button = QPushButton("Search Materials Project Database")
+    search_button.setFixedHeight(22)
+    key_button = QPushButton("⚿")
+    key_button.setFixedSize(22,22)
+    key_button.setToolTip("Upload Materials Project API Key")
     help_button = QPushButton("?")
     help_button.setToolTip("How to format input")
     help_button.setFixedSize(22,22)
     button_layout.addWidget(help_button)
+    button_layout.addWidget(key_button)
+    button_layout.addWidget(search_button)
     button_layout.addWidget(add_button)
     layout.addLayout(button_layout, 3, 0, 1, 2)
 
     internet_connection = check_internet_connection()
     
     group_box_3 = QGroupBox()
-    internet_layout = QVBoxLayout()
+    config_layout = QVBoxLayout()
+    add_button.setEnabled(False)
     if not internet_connection:
-        add_button.setEnabled(False)
+        search_button.setEnabled(False)
+        key_button.setEnabled(False)
         internet_label = GroupLabel('Internet: <span style="color: red;">Not Connected</span>')
+        key_label = GroupLabel('API Key: <span style="color: red;">None</span>')
     else:
         internet_label = GroupLabel('Internet: <span style="color: green;">Connected</span>')
+        if not test_api_key():
+            search_button.setEnabled(False)
+            key_label = GroupLabel('API Key: <span style="color: red;">None</span>')
+        else:
+            key_label = GroupLabel('API Key: <span style="color: green;">Valid</span>')
 
-    internet_layout.addWidget(internet_label)
-    group_box_3.setLayout(internet_layout)
+    config_layout.addWidget(internet_label)
+    config_layout.addWidget(key_label)
+    group_box_3.setLayout(config_layout)
     layout.addWidget(group_box_3, 2, 0)
 
     return layout, crystal_type_button_group, search_type_button_group
 
 def sim_add_create_box_layout(num_of_boxes: int) -> QGroupBox:
-    layout = QHBoxLayout()
-
+    layout = QVBoxLayout()
+    sub_layout = QHBoxLayout()
+    search_label = GroupLabel("Crystal:")
+    sub_layout.addWidget(search_label)
     for i in range(num_of_boxes):
         box = QLineEdit()
-        layout.addWidget(box)
+        sub_layout.addWidget(box)
+    layout.addLayout(sub_layout)
+    table = QTableWidget()
+    table.setColumnCount(5)
+    table.setHorizontalHeaderLabels(['Material', 'Formula', 'Id', 'Space Group', 'Add'])
+    results_label = GroupLabel("Results")
+    layout.addWidget(results_label, alignment=Qt.AlignmentFlag.AlignCenter)
+    layout.addWidget(table)
     group_box = QGroupBox()
     group_box.setLayout(layout)
 
