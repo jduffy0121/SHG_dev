@@ -85,4 +85,4 @@ def pull_missing_files() -> None:
     repo = git.Repo(PACKAGE_DIR)
     repo.remotes.origin.fetch()
     repo.git.reset('--hard', 'origin/main')
-    print('Repository files successfully recovered.\nRestarting program...')
+    print('\nRepository files successfully recovered.\nRestarting program...')

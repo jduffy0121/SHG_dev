@@ -951,7 +951,7 @@ def main():
     if isinstance(all_files, str):
         print(f"Missing the following project files:{all_files}")
         while True:
-            print("\n0\tReclone package (will overwrite any custom files) \nq\tQuit program\t")
+            print("\n0\tReclone package from live git (will overwrite any custom files) \nq\tQuit program\t")
             user_input = input("Selection: ")
             if user_input == '0':
                 pull_missing_files()
