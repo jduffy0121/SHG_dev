@@ -2,7 +2,7 @@ import inspect
 import numpy as np
 from scipy.optimize import curve_fit
 
-from .gui_classes import *
+from .data_classes import *
 from .utils import *
 
 def init_fit_classes(config: FitConfig, manager: FitManager) -> None:

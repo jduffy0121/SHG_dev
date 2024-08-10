@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 from typing import List, Tuple, Union, Dict
 from pymatgen.ext.matproj import MPRester
 
-from .gui_classes import *
+from .data_classes import *
+from .custom_widgets import *
 
 REPO_DIR = pathlib.Path(__file__).parent.parent.resolve()
     

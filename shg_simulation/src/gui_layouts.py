@@ -9,7 +9,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFontMetrics, QTextOption, QPixmap
 
-from .gui_classes import *
+from .data_classes import *
+from .custom_widgets import *
 from .gui_html_boxes import *
 from .utils import *
 
