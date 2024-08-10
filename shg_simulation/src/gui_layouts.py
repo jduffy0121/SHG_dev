@@ -167,18 +167,12 @@ def fit_res_create_expand_win(config):
 
 def fit_res_create_plot_win():
     layout = QVBoxLayout()
-    sub_layout = QVBoxLayout()
-    box_layout = QVBoxLayout()
 
-    label = TableLabel(f"Select plots to continue")
-    box_layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
-
-    scroll_area = QScrollArea()
-    scroll_area.setLayout(box_layout)
-    sub_layout.addWidget(scroll_area)
+    label = GroupLabel(f"Select plots to continue")
+    layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
 
     group_box = QGroupBox()
-    group_box.setLayout(sub_layout)
+    group_box.setLayout(layout)
     
     group_box.setFixedSize(420,460)
     return group_box

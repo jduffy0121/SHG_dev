@@ -160,15 +160,38 @@ class FitResults(QWidget):
         button.setEnabled(False)
         button_id = self.add_button_group.id(button)
         channel = self.config.channels[button_id]
-        if self.manager.plots_showing == []:
-            self.manager.plots_showing.append(channel)
+        self.manager.plots_showing.append(channel)
+        if self.manager.selection_mode == 'Single':
+            self.manager.selected_channels = []
+        self.manager.selected_channels.append(channel)
         self.generate_plots()
 
     def swap_button_clicked(self) -> None:
-        pass
+        button = self.sender()
+        button.setEnabled(False)
+        button_id = self.add_button_group.id(button)
+        channel = self.config.channels[button_id]
+        if channel in self.manager.plots_showing:
+            pass
+        else:
+            pass
 
     def close_button_clicked(self) -> None:
-        pass
+        button = self.sender()
+        button_id = self.close_button_group.id(button)
+        channel = self.manager.plots_showing[button_id]
+        channel_index = self.config.channels.index(channel)
+        self.manager.plots_showing.remove(channel)
+        if channel in self.manager.selected_channels and self.manager.selection_mode == 'Single':
+            self.manager.selected_channels = []
+        elif channel in self.manager.selected_channels and self.manager.selection_mode == 'Multiple':
+            self.manager.selected_channels.remove(channel)
+        if not self.manager.plots_showing:
+            self.manager.selected_channels = []
+            self.generate_plots(no_plots=True)
+        else:
+            self.generate_plots()
+        self.add_button_group.button(channel_index).setEnabled(True)
 
     def full_button_clicked(self) -> None:
         button = self.sender()
@@ -177,20 +200,44 @@ class FitResults(QWidget):
         self.plot_win = PlotWindow(channel=channel, config=self.config, point_groups=self.manager.point_groups)
         self.plot_win.show()
     
-    def generate_plots(self):
+    def canvas_clicked(self, plot_id) -> None:
+        channel = self.manager.plots_showing[plot_id]
+        if channel in self.manager.selected_channels and self.manager.selection_mode == 'Single':
+            self.manager.selected_channels = []
+        elif self.manager.selection_mode == 'Single':
+            self.manager.selected_channels = []
+            self.manager.selected_channels.append(channel)
+        elif channel in self.manager.selected_channels and self.manager.selection_mode == 'Multiple':
+            pass
+        else:
+            pass
+        self.update_selection()
+
+    def selection_mode_changed(self) -> None:
+        pass
+
+    def generate_plots(self, no_plots: bool=False):
+        self.clear_plots()
+        
         layout = QVBoxLayout()
         self.full_button_group = QButtonGroup()
         self.close_button_group = QButtonGroup()
 
+        if no_plots:
+            label = GroupLabel(f"Select plots to continue")
+            self.layout.itemAtPosition(1,2).widget().layout().addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
+            return
+
         plot_id = 0
         self.manager.figures = []
-        for channel in self.config.channels:
+        for channel in self.manager.plots_showing:
             fits = [point_group for point_group in self.manager.point_groups if point_group.active == True and point_group.channel == channel]
             channel_layout = QGridLayout()
             sub_layout = QVBoxLayout()
             enlarge_button = QPushButton('⤢')
             enlarge_button.clicked.connect(self.full_button_clicked)
             close_button = QPushButton('✕')
+            close_button.clicked.connect(self.close_button_clicked)
             enlarge_button.setToolTip('Display in a new window')
             close_button.setToolTip('Close plot')
             close_button.setFixedSize(20,20)
@@ -208,6 +255,7 @@ class FitResults(QWidget):
                          height=(OS_CONFIG.fit_res_mini_plt_r/OS_CONFIG.fit_res_mini_plt_dpi) * 2, 
                          dpi=OS_CONFIG.fit_res_mini_plt_dpi, fits=fits)
             canvas = ClickableFigureCanvas(figure=fig, plot_id=plot_id, radius=OS_CONFIG.fit_res_mini_plt_r)
+            canvas.canvas_signal.connect(self.canvas_clicked)
             self.manager.figures.append((fig, canvas))
             canvas.setFixedSize(OS_CONFIG.fit_res_mini_plt_r * 2, OS_CONFIG.fit_res_mini_plt_r * 2)
 
@@ -217,6 +265,7 @@ class FitResults(QWidget):
             group_box.setFixedSize(350, 325)
             group_box.setLayout(channel_layout)
             layout.addWidget(group_box, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+            plot_id = plot_id + 1
 
         widget = PlotWidget()
         widget.setLayout(layout)
@@ -225,16 +274,28 @@ class FitResults(QWidget):
         scroll_area.setWidget(widget)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
 
-        self.layout.itemAtPosition(1,2).widget().layout().itemAt(0).widget().deleteLater()
-        self.layout.itemAtPosition(1,2).widget().layout().itemAt(0).widget().setParent(None)
         self.layout.itemAtPosition(1,2).widget().layout().addWidget(scroll_area)
         self.setLayout(self.layout)
 
-    def clear_plots() -> None:
-        pass
+        self.update_selection()
 
-    def update_selection() -> None:
-        pass
+    def clear_plots(self) -> None:
+        if self.manager.figures:
+            for fig, canvas in self.manager.figures:
+                plt.close(fig) 
+        for i in reversed(range(self.layout.itemAtPosition(1,2).widget().layout().count())):
+            widget = self.layout.itemAtPosition(1,2).widget().layout().itemAt(i).widget()
+            if widget is not None:
+                widget.deleteLater()
+                widget.setParent(None)
+
+    def update_selection(self) -> None:
+        if self.manager.plots_showing:
+            for fig, canvas in self.manager.figures:
+                canvas.remove_glow_effect()
+        for channel in self.manager.selected_channels:
+            selected_id = self.manager.plots_showing.index(channel)
+            self.manager.figures[selected_id][1].apply_glow_effect()
         
     def back_to_input(self) -> None:
         self.win = FittingInput(config=self.config)
@@ -831,7 +892,7 @@ class SimSelection(QWidget):
             self.layout.itemAtPosition(1,0).widget().layout().itemAtPosition(0,2).layout().itemAt(2).widget().setEnabled(True)
         
     def run_button_clicked(self) -> None:
-        print("RUN")
+       pass 
 
     def back_to_main(self) -> None:
         self.win = MainWindow()
