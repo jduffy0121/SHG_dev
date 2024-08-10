@@ -1,5 +1,6 @@
 import numpy as np
 import types
+import yaml
 import platform
 from urllib.parse import quote
 import pathlib
@@ -7,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 import matplotlib
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QComboBox, QWidget, QLabel, QCheckBox, QRadioButton
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QComboBox, QWidget, QLabel, QCheckBox, QRadioButton, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF
 from PyQt6.QtGui import QPainterPath, QRegion, QColor
 
@@ -26,21 +27,36 @@ class PointGroupFit:
 @dataclass
 class FitManager:
     point_groups: List[PointGroupFit] = field(default_factory=lambda: [])
-    selection_mode: str = ''
+    selection_mode: str = 'Single'
     selected_channels: List[str] = field(default_factory=lambda: [])
     plots_showing: List[str] = field(default_factory=lambda: [])
     prev_selected: List[str] = field(default_factory=lambda: [])
     expanded_window: bool = False
-    figures: List[Tuple[matplotlib.figure, matplotlib.axes]] = field(default_factory=lambda: [()])
+    figures: List[Tuple[matplotlib.figure, matplotlib.axes]] = field(default_factory=lambda: [])
 
 @dataclass
 class FitConfig:
     geometry: str = ''
     channels: List[str] = field(default_factory=lambda: [])
     data: Dict[str, List[float]] = field(default_factory=lambda: {})
+    data_files: List[pathlib.Path] = field(default_factory=lambda: [None] * 6)
+    column_headers: bool = False
     source: str = ''
     sys: str = ''
     plane: str = ''
+
+@dataclass
+class FitInputManager:
+    valid_channels: List[str] = field(default_factory=lambda: [])
+    data_files: List[pathlib.Path] = field(default_factory=lambda: [None] * 6)
+    column_headers: bool = False
+
+@dataclass
+class SimInputManager:
+    crystal_type: str = 'Unary'
+    unary_crysal: str = ''
+    binary_crysal: str = ''
+    tertiary_crystal: str = ''
 
 class OSConfig:
     def __init__(self):
@@ -53,48 +69,53 @@ class OSConfig:
         self.full_plt_len = 0
         self.invalid_os = False
         self.style_sheet = ''
-        self.set_config()
 
     def set_config(self) -> None:
-        windows_config = {'fit_win_upld_box_len': 300, 'fit_win_upld_box_ht': 15,
-                      'fit_res_mini_plt_dpi': 70, 'fit_res_mini_plt_r': 145, 'full_plt_dpi': 210,
-                      'full_plt_len': 280}
-        mac_config = {'fit_win_upld_box_len': 300, 'fit_win_upld_box_ht': 15,
-                      'fit_res_mini_plt_dpi': 70, 'fit_res_mini_plt_r': 145, 'full_plt_dpi': 210,
-                      'full_plt_len': 280}
-        linux_config = {'fit_win_upld_box_len': 300, 'fit_win_upld_box_ht': 15,
-                      'fit_res_mini_plt_dpi': 70, 'fit_res_mini_plt_r': 145, 'full_plt_dpi': 210,
-                      'full_plt_len': 280}
-        if self.os == 'Windows':
-            self.fit_win_upld_box_len = windows_config['fit_win_upld_box_len']
-            self.fit_win_upld_box_ht = windows_config['fit_win_upld_box_ht']
-            self.fit_res_mini_plt_dpi = windows_config['fit_res_mini_plt_dpi']
-            self.fit_res_mini_plt_r = windows_config['fit_res_mini_plt_r']
-            self.full_plt_dpi = windows_config['full_plt_dpi']
-            self.full_plt_len = windows_config['full_plt_len']
-            self.invalid_os = False
-        elif self.os == 'Darwin':
-            self.fit_win_upld_box_len = mac_config['fit_win_upld_box_len']
-            self.fit_win_upld_box_ht = mac_config['fit_win_upld_box_ht']
-            self.fit_res_mini_plt_dpi = mac_config['fit_res_mini_plt_dpi']
-            self.fit_res_mini_plt_r = mac_config['fit_res_mini_plt_r']
-            self.full_plt_dpi = mac_config['full_plt_dpi']
-            self.full_plt_len = mac_config['full_plt_len']
-            self.invalid_os = False
-        elif self.os == 'Linux':
-            self.fit_win_upld_box_len = linux_config['fit_win_upld_box_len']
-            self.fit_win_upld_box_ht = linux_config['fit_win_upld_box_ht']
-            self.fit_res_mini_plt_dpi = linux_config['fit_res_mini_plt_dpi']
-            self.fit_res_mini_plt_r = linux_config['fit_res_mini_plt_r']
-            self.full_plt_dpi = linux_config['full_plt_dpi']
-            self.full_plt_len = linux_config['full_plt_len']
-            self.invalid_os = False
-        else:
+        if not self.os in ['Windows', 'Darwin', 'Linux']:
             self.invalid_os = True
-        file_name = f'{pathlib.Path(__file__).parent.resolve()}/style_sheets/{self.os.lower()}_styles.qss'
-        with open(file_name, 'r') as file:
+            return
+
+        styles_path = f'{pathlib.Path(__file__).parent.parent.resolve()}/styles/{self.os.lower()}_styles.qss'
+        config_path = f'{pathlib.Path(__file__).parent.parent.resolve()}/configs/{self.os.lower()}_config.yaml'
+    
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+        file.close()
+
+        self.fit_win_upld_box_len = config['fit_win_upld_box_len']
+        self.fit_win_upld_box_ht = config['fit_win_upld_box_ht']
+        self.fit_res_mini_plt_dpi = config['fit_res_mini_plt_dpi']
+        self.fit_res_mini_plt_r = config['fit_res_mini_plt_r']
+        self.full_plt_dpi = config['full_plt_dpi']
+        self.full_plt_len = config['full_plt_len']
+
+        with open(styles_path, 'r') as file:
             self.style_sheet = file.read() 
         file.close()
+
+class PlotWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #171717;
+            } 
+            QGroupBox{
+                background-color: #818589;
+                border: 5px solid #303030
+            } 
+            QPushButton{
+                background-color: #626262;
+                color: white;
+                border: 1px solid #808080;
+                border-radius: 6px; 
+                padding: 2px 5px;
+            }
+            QPushButton:hover {
+                background: #9B9B9B;
+                border: 1px solid #C0C0C0;
+            }
+        """)
 
 class TableCheckBox(QCheckBox):
     def __init__(self, text=None):

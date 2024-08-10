@@ -1,14 +1,44 @@
 import pathlib
+import yaml
 import pandas as pd
+import requests
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 
 from .gui_classes import *
 
-def read_data(data_path: pathlib.Path) -> Union[List[Tuple[float, float]], str]: 
+def check_internet_connection() -> bool:
     try:
-        df = pd.read_csv(data_path) 
+        response = requests.get("https://www.google.com", timeout=5)
+        if response.status_code == 200:
+            return True
+        else: 
+            return False
+    except requests.ConnectionError:
+        return False
+    except requests.Timeout:
+        return False
+
+def remove_crystal(crystal_name: str, file_path_to_read: pathlib.Path, file_path_to_write: pathlib.Path) -> None:
+    data = read_crystal_file(file_path=file_path_to_read)
+    updated_data = [crystal for crystal in data if f'{crystal["name"]} ({crystal["symbol"]})' != crystal_name]
+    with open(file_path_to_write, 'w') as file:
+        yaml.dump(updated_data, file)
+    file.close()
+
+def read_crystal_file(file_path: pathlib.Path) -> List[Dict]:
+    with open(file_path, 'r') as file:
+        data = yaml.safe_load(file)
+    file.close()
+    return data
+
+def read_data(data_path: pathlib.Path, header: bool) -> Union[List[Tuple[float, float]], str]: 
+    try:
+        if header:
+            df = pd.read_csv(data_path)
+        else:
+            df = pd.read_csv(data_path, header=None)
         if df.shape[1] > 2:
             return "Too many columns"
         elif df.shape[1] < 2:
@@ -20,7 +50,7 @@ def read_data(data_path: pathlib.Path) -> Union[List[Tuple[float, float]], str]:
                     return "Missing data elem"
             except TypeError:
                 return "Incorrect dtype"
-        return data_list          
+        return data_list 
     except pd.errors.EmptyDataError:
         return "No data"
 
@@ -35,7 +65,7 @@ def get_point_groups(source: str, sys: str) -> List[str]:
         return e_q_or_m_d_point_groups[sys]
 
 def convert_to_config_str(gui_name: str) -> str:
-    name_scheme = {'||': 'Parallel', '⊥': 'Perpendicular', 'Reflection': 'refl', 
+    name_scheme = {'||': 'Parallel', '⊥': 'Perpendicular', 'Reflection': 'refl', 'Transmission': 'trans', 
                    'Electric Dipole': 'e_d', 'Electric Quadrupole': 'e_q', 'Magnetic Dipole': 'm_d', 
                    '(0 0 1)': '001','Rotz(90°)': 'rotz90'}
     try:

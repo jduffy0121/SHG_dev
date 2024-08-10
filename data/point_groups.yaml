@@ -1,0 +1,48 @@
+Electric_dipole:
+  Triclinic:
+    - C_1
+  Monoclinic:
+    - C_2
+    - C_1h
+  Orthorhombic:
+    - D_2
+    - C_2v
+  Tetragonal:
+    - C_4
+    - S_4
+    - D_4
+    - C_4v
+  Trigonal:
+    - C_3
+    - D_3
+    - C_3v
+  Hexagonal:
+    - C_6
+    - C_3h
+    - D_6
+    - C_6v
+    - D_3h
+  Cubic:
+    - T
+    - O
+    - T_d
+
+Electric_quadrupole_magnetic_dipole:
+  Triclinic:
+    - S_2
+  Monoclinic: 
+    - C_2h
+  Orthorhombic:
+    - D_2h
+  Tetragonal:
+    - C_4h
+    - D_4h
+  Trigonal:
+    - C_6
+    - D_3d
+  Hexagonal:
+    - C_6h
+    - D_6h
+  Cubic:
+    - T_h
+    - O_h

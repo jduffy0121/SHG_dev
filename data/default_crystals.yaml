@@ -1,0 +1,12 @@
+- name: Titanium
+  symbol: Ti
+  structure: Unary
+  space_group: C1
+- name: Chromium Triiodide
+  symbol: CrI3
+  structure: Binary
+  space_group: C1
+- name: Strontium Titanium Oxide
+  symbol: SrTiO3
+  structure: Tertiary
+  space_group: C1

@@ -1,5 +1,7 @@
 QWidget {
-  background-color: #3f3f3f
+  background-color: #3f3f3f;
+  font-size: 13;
+  font-family: SF Pro;
 }
 QPushButton {
   background-color: #626262;
@@ -47,6 +49,14 @@ QGroupBox{
 }
 QGroupBox::title {
   background: transparent;
+}
+QListWidget {
+  background: #171717;
+  border: 3px solid #101010; 
+  border-radius: 7px
+}
+QLineEdit {
+  background: #101010;
 }
 QTabWidget {
   background: #202020;

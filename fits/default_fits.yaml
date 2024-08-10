@@ -1,0 +1,3 @@
+- point_group: C_1
+  fit: "lambda x,a,const,*p: a * np.sin(x + const) ** 2"
+  display_str: "a * sin²(Φ + const)"
