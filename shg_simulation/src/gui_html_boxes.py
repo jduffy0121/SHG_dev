@@ -93,7 +93,7 @@ def create_data_help_tab() -> QTextBrowser:
     element has a <b>text value instead of a float</b>, this will cause an error and the program will not be able to continue.
     </p>
     <p>
-    Files can have column headers as long as the option is selected. What these data headers are irreverent and will not be referenced by
+    Files can have column headers as long as the option is selected. What these data headers are irrelevant and will not be referenced by
     the program.
     </p>
     '''

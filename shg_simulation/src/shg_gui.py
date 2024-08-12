@@ -208,6 +208,10 @@ class FitResults(QWidget):
             self.generate_plots()
         elif channel in self.manager.selected_channels and self.manager.selection_mode == 'Multiple':
             self.manager.selected_channels.remove(channel)
+            if len(self.manager.selected_channels) == 0:
+                self.manager.selected_channels.append(self.manager.plots_showing[0])
+            self.generate_plots()
+        else:
             self.generate_plots()
         self.add_button_group.button(channel_index).setEnabled(True)
 
@@ -256,6 +260,7 @@ class FitResults(QWidget):
         if no_plots:
             label = GroupLabel(f"Select plots to continue")
             self.layout.itemAtPosition(1,2).widget().layout().addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.update_selection()
             return
 
         plot_id = 0

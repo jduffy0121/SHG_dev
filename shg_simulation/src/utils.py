@@ -7,7 +7,7 @@ import os
 import warnings
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Union, Dict
-from pymatgen.ext.matproj import MPRester
+from mp_api.client import MPRester
 
 from .data_classes import *
 from .custom_widgets import *
@@ -18,27 +18,28 @@ def search_api(crystal:str):
     with open(f'{REPO_DIR}/configs/materials_project_api_key.txt', 'w') as file:
         api_key = file.read()
     file.close()
-    with MPRester(api_key) as m:
-        materials = m.get_data(crystal)
-        return materials
+    with MPRester(api_key) as mpr:
+        pass
+        #materials = m.get_data(crystal)
+    #return materials
 
 def test_api_key(key=None) -> bool:
     file_path = f'{REPO_DIR}/configs/materials_project_api_key.txt'
-    if not pathlib.Path(file_path).exists():
-        return False
     if not key:
+        if not pathlib.Path(file_path).exists():
+            return False
         with open(file_path, 'r') as file:
             api_key = file.read()
         file.close()
     else:
         api_key = key
     try:
-        warnings.filterwarnings("ignore", message="You are using the legacy MPRester")
-        with MPRester(api_key) as m:
-            material = m.get_data("mp-149")
-            return True
+        with MPRester(api_key) as mpr:
+            material = mpr.summary.search(material_ids=["mp-149"])
+        return True
     except Exception:
-        os.remove(file_path)
+        if pathlib.Path(file_path).exists():
+            os.remove(file_path)
         return False
 
 def check_internet_connection() -> bool:

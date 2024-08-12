@@ -2,4 +2,4 @@
 **/__pycache__/
 shg_simulation/data/custom_crystals.yaml
 shg_simulation/fits/custom_fits.yaml
-shg_simulation/config/materials_project_api_key.txt
+shg_simulation/configs/materials_project_api_key.txt
