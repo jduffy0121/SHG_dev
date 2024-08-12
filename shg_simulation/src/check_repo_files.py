@@ -61,6 +61,7 @@ def check_files() -> Union[bool, str]:
                 missing_roots.append(file)
     else:
         missing_roots = ['updates.txt', 'LICENSE']
+
     message = ''
     if missing_roots:
         message = message + f"\n\tRoot files in ~/: {', '.join(missing_roots)}"

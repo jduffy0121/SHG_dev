@@ -79,13 +79,13 @@ class GroupCheckBox(QCheckBox):
         self.setStyleSheet('background-color: #303030')
         
 class CustomComboBox(QComboBox):
-    box_signal = pyqtSignal(str)
+    signal = pyqtSignal(str)
     def __init__(self):
         super().__init__()
         self.currentIndexChanged.connect(self.selection_change)
 
     def selection_change(self, event):
-        self.box_signal.emit(self.currentText())
+        self.signal.emit(self.currentText())
 
 class ComboBoxGroup:
     def __init__(self):
@@ -122,7 +122,7 @@ class ClickableFigureCanvas(FigureCanvas):
     def apply_glow_effect(self):
         glow_effect = QGraphicsDropShadowEffect(self)
         glow_effect.setBlurRadius(100)
-        glow_effect.setColor(QColor(255, 0, 0, 160))  
+        glow_effect.setColor(QColor(0, 0, 255, 160))  
         glow_effect.setOffset(0, 0)
         self.setGraphicsEffect(glow_effect)
 

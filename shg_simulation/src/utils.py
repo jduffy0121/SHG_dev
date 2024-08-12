@@ -106,11 +106,11 @@ def convert_to_config_str(gui_name: str) -> str:
     except KeyError:
         return gui_name
 
-def polar_plot(title: str, data: List[Tuple[float, float]], width: int, height: int, dpi: int, fits=None):
+def polar_plot(title: str, data: List[Tuple[float, float]], width: int, height: int, dpi: int, data_color: str, fits=None):
     r_values = [r for phi, r in data]
     phi_values = [phi for phi, r in data]
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(width, height), dpi=dpi)
-    ax.scatter(phi_values, r_values)
+    ax.scatter(phi_values, r_values, color=data_color)
     if fits != None:
         for fit in fits:
             ax.plot(fit.fit_phi, fit.fit_r, color=fit.legend.lower())

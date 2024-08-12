@@ -78,7 +78,7 @@ class AdditionalWindow(QWidget):
         QDesktopServices.openUrl(url)
 
 class PlotWindow(QWidget):
-    def __init__(self, channel: list, config, point_groups=None, data_upload=None, parent=None) -> None:
+    def __init__(self, channel: list, config, data_color, point_groups=None, data_upload=None, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(f'{channel}')
         self.config = config
@@ -86,11 +86,11 @@ class PlotWindow(QWidget):
             self.fits = [point_group for point_group in point_groups if point_group.active == True and point_group.channel == channel]
             self.fig, self.ax = polar_plot(title=channel, data=self.config.data[channel], 
                                        width=OS_CONFIG.full_plt_len, height=OS_CONFIG.full_plt_len, 
-                                       dpi=OS_CONFIG.full_plt_dpi, fits=self.fits)
+                                       dpi=OS_CONFIG.full_plt_dpi, data_color=data_color, fits=self.fits)
         else:
             self.fig, self.ax = polar_plot(title=channel, data=self.config, 
                                        width=OS_CONFIG.full_plt_len, height=OS_CONFIG.full_plt_len, 
-                                       dpi=OS_CONFIG.full_plt_dpi)
+                                       dpi=OS_CONFIG.full_plt_dpi, data_color=data_color)
 
         self.canvas = FigureCanvas(self.fig)
         self.toolbar = NavigationToolbar(self.canvas, self)
@@ -122,6 +122,8 @@ class FitResults(QWidget):
 
     def set_button_clicks(self) -> None:
         self.layout.itemAtPosition(2,0).widget().clicked.connect(self.back_to_input)
+        self.layout.itemAtPosition(1,1).widget(1).layout().itemAt(1).widget().layout().itemAt(len(self.config.channels)+2).widget().signal.connect(self.data_color_changed)
+        self.layout.itemAtPosition(1,1).widget(1).layout().itemAt(1).widget().layout().itemAt(len(self.config.channels)+4).widget().signal.connect(self.selection_mode_changed)
         for i in range(2):
             self.layout.itemAtPosition(1,1).widget(i).layout().itemAt(0).widget().layout().itemAt(0).widget().clicked.connect(self.visual_button_clicked)
         for i in range(2):
@@ -168,14 +170,28 @@ class FitResults(QWidget):
         self.generate_plots()
 
     def swap_button_clicked(self) -> None:
+        if not self.manager.selected_channels:
+            return
         button = self.sender()
-        button.setEnabled(False)
-        button_id = self.add_button_group.id(button)
+        button_id = self.swap_button_group.id(button)
         channel = self.config.channels[button_id]
+        selected_channel = self.manager.selected_channels[0]
+        selected_channel_index = self.manager.plots_showing.index(selected_channel)
+        if channel == selected_channel:
+            return
         if channel in self.manager.plots_showing:
-            pass
+            channel_index = self.manager.plots_showing.index(channel)
+            self.manager.plots_showing[channel_index], self.manager.plots_showing[selected_channel_index] = self.manager.plots_showing[selected_channel_index], self.manager.plots_showing[channel_index]
         else:
-            pass
+            self.manager.plots_showing.remove(selected_channel)
+            self.manager.plots_showing.insert(selected_channel_index, channel)
+            selected_config_index = self.config.channels.index(selected_channel)
+            channel_config_index = self.config.channels.index(channel)
+            self.add_button_group.button(selected_config_index).setEnabled(True)
+            self.add_button_group.button(channel_config_index).setEnabled(False)
+        self.manager.selected_channels = []
+        self.manager.selected_channels.append(channel)
+        self.generate_plots()
 
     def close_button_clicked(self) -> None:
         button = self.sender()
@@ -183,14 +199,15 @@ class FitResults(QWidget):
         channel = self.manager.plots_showing[button_id]
         channel_index = self.config.channels.index(channel)
         self.manager.plots_showing.remove(channel)
-        if channel in self.manager.selected_channels and self.manager.selection_mode == 'Single':
-            self.manager.selected_channels = []
-        elif channel in self.manager.selected_channels and self.manager.selection_mode == 'Multiple':
-            self.manager.selected_channels.remove(channel)
         if not self.manager.plots_showing:
             self.manager.selected_channels = []
             self.generate_plots(no_plots=True)
-        else:
+        elif channel in self.manager.selected_channels and self.manager.selection_mode == 'Single':
+            self.manager.selected_channels = []
+            self.manager.selected_channels.append(self.manager.plots_showing[0])
+            self.generate_plots()
+        elif channel in self.manager.selected_channels and self.manager.selection_mode == 'Multiple':
+            self.manager.selected_channels.remove(channel)
             self.generate_plots()
         self.add_button_group.button(channel_index).setEnabled(True)
 
@@ -198,7 +215,7 @@ class FitResults(QWidget):
         button = self.sender()
         button_id = self.full_button_group.id(button)
         channel = self.manager.plots_showing[button_id]
-        self.plot_win = PlotWindow(channel=channel, config=self.config, point_groups=self.manager.point_groups)
+        self.plot_win = PlotWindow(channel=channel, config=self.config, data_color=self.manager.data_color, point_groups=self.manager.point_groups)
         self.plot_win.show()
     
     def canvas_clicked(self, plot_id) -> None:
@@ -209,14 +226,26 @@ class FitResults(QWidget):
             self.manager.selected_channels = []
             self.manager.selected_channels.append(channel)
         elif channel in self.manager.selected_channels and self.manager.selection_mode == 'Multiple':
-            pass
+           self.manager.selected_channels.remove(channel) 
         else:
-            pass
+           self.manager.selected_channels.append(channel) 
         self.update_selection()
+    
+    def data_color_changed(self, color) -> None:
+        self.manager.data_color = color.lower()
+        if self.manager.plots_showing:
+            self.generate_plots()
+        else:
+            self.generate_plots(no_plots=True)
 
-    def selection_mode_changed(self) -> None:
-        pass
-
+    def selection_mode_changed(self, mode) -> None:
+        self.manager.selection_mode = mode 
+        if self.manager.selection_mode == 'Single' and self.manager.selected_channels:
+            channel = self.manager.selected_channels[len(self.manager.selected_channels) - 1]
+            self.manager.selected_channels = []
+            self.manager.selected_channels.append(channel)
+        self.update_selection()
+    
     def generate_plots(self, no_plots: bool=False):
         self.clear_plots()
         
@@ -254,7 +283,7 @@ class FitResults(QWidget):
             fig, ax = polar_plot(title=channel, data=self.config.data[channel], 
                          width=(OS_CONFIG.fit_res_mini_plt_r/OS_CONFIG.fit_res_mini_plt_dpi) * 2, 
                          height=(OS_CONFIG.fit_res_mini_plt_r/OS_CONFIG.fit_res_mini_plt_dpi) * 2, 
-                         dpi=OS_CONFIG.fit_res_mini_plt_dpi, fits=fits)
+                         dpi=OS_CONFIG.fit_res_mini_plt_dpi, data_color=self.manager.data_color, fits=fits)
             canvas = ClickableFigureCanvas(figure=fig, plot_id=plot_id, radius=OS_CONFIG.fit_res_mini_plt_r)
             canvas.canvas_signal.connect(self.canvas_clicked)
             self.manager.figures.append((fig, canvas))
@@ -297,6 +326,19 @@ class FitResults(QWidget):
         for channel in self.manager.selected_channels:
             selected_id = self.manager.plots_showing.index(channel)
             self.manager.figures[selected_id][1].apply_glow_effect()
+
+        if self.manager.selection_mode == 'Multiple':
+            for button in self.swap_button_group.buttons(): 
+                button.setEnabled(False)
+        else:
+            for button in self.swap_button_group.buttons():
+                button.setEnabled(True)
+
+        if self.manager.selected_channels:
+            sel_chan_text = f"Selection mode: {self.manager.selection_mode}\nSelected channel(s): {', '.join(self.manager.selected_channels)}"
+        else:
+            sel_chan_text = f"Selection mode: {self.manager.selection_mode}\nSelected channel(s): None"
+        self.layout.itemAtPosition(2,2).widget().setText(sel_chan_text)
         
     def back_to_input(self) -> None:
         self.win = FittingInput(config=self.config)
@@ -577,7 +619,7 @@ class FittingInput(QWidget):
         elif data == 'Missing data elem':
             self.error_win(message=f'Missing data elements for data in uploaded file for channel: {channel}')
             return
-        self.plot_win = PlotWindow(channel=convert_to_config_str(channel), config=data, data_upload=True)
+        self.plot_win = PlotWindow(channel=convert_to_config_str(channel), config=data, data_color='blue', data_upload=True)
         self.plot_win.show()
 
     def show_help_win(self) -> None:

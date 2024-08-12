@@ -33,6 +33,7 @@ class FitManager:
     prev_selected: List[str] = field(default_factory=lambda: [])
     expanded_window: bool = False
     figures: List[Tuple[matplotlib.figure, matplotlib.axes]] = field(default_factory=lambda: [])
+    data_color: str = 'blue'
 
 @dataclass
 class FitConfig:
