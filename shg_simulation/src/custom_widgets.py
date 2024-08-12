@@ -1,14 +1,8 @@
-import numpy as np
-import types
-import yaml
-import platform
-from urllib.parse import quote
-import pathlib
-from dataclasses import dataclass, field
-from typing import List, Tuple, Dict
-import matplotlib
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QComboBox, QWidget, QLabel, QCheckBox, QRadioButton, QFrame
+from PyQt6.QtWidgets import (
+    QGraphicsDropShadowEffect, QComboBox, QWidget, 
+    QLabel, QCheckBox, QRadioButton
+)
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF
 from PyQt6.QtGui import QPainterPath, QRegion, QColor
 

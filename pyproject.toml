@@ -32,4 +32,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-shg_gui = "shg_simulation.src.shg_gui:main"
+shg_gui = "shg_simulation.src.startup:main"

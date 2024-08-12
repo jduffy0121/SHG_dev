@@ -1,22 +1,25 @@
 import pathlib
 import pkg_resources
-from typing import List, Union, Tuple
+from typing import List
 from PyQt6.QtCore import Qt 
 from PyQt6.QtWidgets import (
     QGroupBox, QButtonGroup, QVBoxLayout, QHBoxLayout, QGridLayout, 
     QTextEdit, QPushButton, QWidget, QTabWidget, QTableWidget, 
-    QStackedLayout, QScrollArea, QListWidget, QLineEdit
+    QStackedLayout, QListWidget, QLineEdit, QLabel
 )
 from PyQt6.QtGui import QFontMetrics, QTextOption, QPixmap
 
-from .data_classes import *
-from .custom_widgets import *
-from .gui_html_boxes import *
-from .utils import *
+from .sys_config import OS_CONFIG, PACKAGE_DIR, REPO_DIR
+from .data_classes import FitManager, FitConfig
+from .custom_widgets import GroupLabel, GroupRadioButton, GroupCheckBox, CustomComboBox
+from .gui_html_boxes import (
+    create_crystals_tab, create_visuals_tab, create_point_group_tab, create_data_help_tab,
+    create_phys_background_tab, create_about_us_tab, create_vers_history,
+    create_license_tab, create_sim_desc, create_fit_desc
+)
+from .utils import test_api_key, check_internet_connection, read_crystal_file
 
-REPO_DIR = pathlib.Path(__file__).parent.parent.resolve()
-
-def fit_res_create_layout(OS_CONFIG, config):
+def fit_res_create_layout(config):
     layout = QGridLayout()
 
     img_label = QLabel()
@@ -178,7 +181,7 @@ def fit_res_create_plot_win():
     group_box.setFixedSize(420,460)
     return group_box
 
-def fit_inp_create_layout(OS_CONFIG): #Sets the primary layout for FitInput() window
+def fit_inp_create_layout(): #Sets the primary layout for FitInput() window
     layout = QGridLayout()
     sub_layout = QHBoxLayout()
     
@@ -192,7 +195,7 @@ def fit_inp_create_layout(OS_CONFIG): #Sets the primary layout for FitInput() wi
     layout.addWidget(img_label, 0, 0, 1, 3, alignment=Qt.AlignmentFlag.AlignLeft)
     
     #Creates and add file upload to the layout
-    file_upload, data_button_group, upload_button_group, full_button_group = fit_inp_create_file_upload(OS_CONFIG=OS_CONFIG)
+    file_upload, data_button_group, upload_button_group, full_button_group = fit_inp_create_file_upload()
     layout.addWidget(file_upload, 1, 0, 3, 1)
 
     #Creates and add the config boxes to the layout
@@ -224,7 +227,7 @@ def fit_inp_create_layout(OS_CONFIG): #Sets the primary layout for FitInput() wi
             geo_button_group, chan_button_group, source_button_group, 
             system_button_group, planes_button_group)
 
-def fit_inp_create_file_upload(OS_CONFIG) -> (QGroupBox, QButtonGroup, QButtonGroup, QButtonGroup): #Creates file input layer for FitInput()
+def fit_inp_create_file_upload() -> (QGroupBox, QButtonGroup, QButtonGroup, QButtonGroup): #Creates file input layer for FitInput()
     layout = QGridLayout()
     sub_layout = QVBoxLayout()
 
@@ -466,7 +469,7 @@ def sim_create_layout() -> QGridLayout:
     
     header_label = QLabel("<h1>Select crystal</h1>") 
     img_label = QLabel()
-    img = QPixmap(f'{REPO_DIR}/imgs/logo_mini.png')
+    img = QPixmap(f'{PACKAGE_DIR}/imgs/logo_mini.png')
     img_scaled = img.scaled(136,68)
     img_label.setPixmap(img_scaled)
 
@@ -514,10 +517,10 @@ def sim_create_layout() -> QGridLayout:
 def sim_create_crystal_table() -> QStackedLayout:
     layout = QStackedLayout()    
 
-    if pathlib.Path(f'{REPO_DIR}/data/custom_crystals.yaml').exists():
-        data = read_crystal_file(file_path = f'{REPO_DIR}/data/custom_crystals.yaml')
+    if pathlib.Path(f'{PACKAGE_DIR}/data/custom_crystals.yaml').exists():
+        data = read_crystal_file(file_path = f'{PACKAGE_DIR}/data/custom_crystals.yaml')
     else:
-        data = read_crystal_file(file_path = f'{REPO_DIR}/data/default_crystals.yaml')
+        data = read_crystal_file(file_path = f'{PACKAGE_DIR}/data/default_crystals.yaml')
 
     unary_list = [f'{crystal["name"]} ({crystal["symbol"]})' for crystal in data if crystal['structure'] == 'Unary']
     binary_list = [f'{crystal["name"]} ({crystal["symbol"]})' for crystal in data if crystal['structure'] == 'Binary']
@@ -547,7 +550,7 @@ def main_create_layout() -> QVBoxLayout:
     button_layout = QHBoxLayout()
 
     img_label = QLabel()
-    img = QPixmap(f'{REPO_DIR}/imgs/logo_full.png')
+    img = QPixmap(f'{PACKAGE_DIR}/imgs/logo_full.png')
     img_scaled = img.scaled(948,198)
     img_label.setPixmap(img_scaled)
     layout.addWidget(img_label)
@@ -582,10 +585,10 @@ def main_create_layout() -> QVBoxLayout:
 def more_window_layout() -> QVBoxLayout:
     layout = QVBoxLayout()
     tabs = QTabWidget()
-    phys_background = create_phys_background_tab(img=f'{REPO_DIR}/imgs/prev.png')
+    phys_background = create_phys_background_tab(img=f'{PACKAGE_DIR}/imgs/prev.png')
     about_us = create_about_us_tab()
-    version_hist = create_vers_history(file=f'{pathlib.Path(__file__).parent.parent.parent.resolve()}/updates.txt')
-    license_tab = create_license_tab(file=f'{pathlib.Path(__file__).parent.parent.parent.resolve()}/LICENSE')
+    version_hist = create_vers_history(file=f'{REPO_DIR}/updates.txt')
+    license_tab = create_license_tab(file=f'{REPO_DIR}/LICENSE')
     tabs.addTab(phys_background, 'RA-SHG')
     tabs.addTab(about_us, 'About Us')
     tabs.addTab(version_hist, 'Versions History')

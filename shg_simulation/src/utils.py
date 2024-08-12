@@ -4,18 +4,14 @@ import pandas as pd
 import requests
 import numpy as np
 import os
-import warnings
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Union, Dict
 from mp_api.client import MPRester
 
-from .data_classes import *
-from .custom_widgets import *
-
-REPO_DIR = pathlib.Path(__file__).parent.parent.resolve()
+from .sys_config import PACKAGE_DIR, REPO_DIR
     
 def search_api(crystal:str):
-    with open(f'{REPO_DIR}/configs/materials_project_api_key.txt', 'w') as file:
+    with open(f'{PACKAGE_DIR}/configs/materials_project_api_key.txt', 'w') as file:
         api_key = file.read()
     file.close()
     with MPRester(api_key) as mpr:
@@ -24,7 +20,7 @@ def search_api(crystal:str):
     #return materials
 
 def test_api_key(key=None) -> bool:
-    file_path = f'{REPO_DIR}/configs/materials_project_api_key.txt'
+    file_path = f'{PACKAGE_DIR}/configs/materials_project_api_key.txt'
     if not key:
         if not pathlib.Path(file_path).exists():
             return False

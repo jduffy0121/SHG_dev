@@ -2,28 +2,27 @@ import sys
 import os
 import pathlib
 import pkg_resources
-from itertools import chain
 import matplotlib.pyplot as plt
-from typing import List, Union, Tuple
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar, FigureCanvasQTAgg as FigureCanvas
+
 from PyQt6.QtCore import Qt, QLoggingCategory, pyqtSignal
-from PyQt6.QtGui import QPixmap, QFontMetrics, QTextOption, QDesktopServices, QFontDatabase
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QPushButton, QGridLayout, QLabel, QTableWidgetItem, QTableWidget, QComboBox,
-    QHBoxLayout, QVBoxLayout, QCheckBox, QFileDialog, QMessageBox, QRadioButton, QButtonGroup, QTextEdit, 
-    QTabWidget, QTextBrowser, QGroupBox, QStackedLayout, QScrollArea
+    QApplication, QWidget, QPushButton, QGridLayout, 
+    QVBoxLayout, QFileDialog, QMessageBox, QButtonGroup, QGroupBox, QScrollArea
 )
 
-from .utils import *
-from .data_classes import *
-from .custom_widgets import *
-from .data_fitting import *
-from .gui_html_boxes import *
-from .gui_layouts import *
-from .check_repo_files import *
-
-REPO_DIR = pathlib.Path(__file__).parent.parent.resolve()
-OS_CONFIG = OSConfig()
+from .sys_config import OS_CONFIG, PACKAGE_DIR
+from .gui_layouts import (
+    fit_res_create_layout, fit_inp_create_layout, sim_crystal_remove_layout, 
+    sim_key_upload_layout, sim_crystal_add_layout, sim_create_layout,
+    sim_create_crystal_table, main_create_layout, more_window_layout,
+    data_help_layout, point_group_win_layout, visuals_win_layout,
+    crystals_win_layout
+)
+from .data_classes import FitManager, FitConfig, FitInputManager, SimInputManager
+from .custom_widgets import PlotWidget, GroupLabel, ClickableFigureCanvas
+from .utils import test_api_key, remove_crystal, read_data, convert_to_config_str, polar_plot
 
 class AdditionalWindow(QWidget):
     def __init__(self, win_type, parent=None) -> None: #Init the window
@@ -109,7 +108,7 @@ class FitResults(QWidget):
         self.setWindowTitle("Fit Results")
         self.manager = FitManager()
         self.config = config
-        self.layout, self.swap_button_group, self.add_button_group = fit_res_create_layout(OS_CONFIG, config)
+        self.layout, self.swap_button_group, self.add_button_group = fit_res_create_layout(config)
         self.full_button_group = None
         self.close_button_group = None
         self.set_button_clicks()
@@ -369,7 +368,7 @@ class FittingInput(QWidget):
         self.manager = FitInputManager()
         (self.layout, self.data_button_group, self.upload_button_group, self.full_button_group, self.geo_button_group, 
             self.chan_button_group, self.source_button_group, self.system_button_group, 
-            self.planes_button_group) = fit_inp_create_layout(OS_CONFIG)
+            self.planes_button_group) = fit_inp_create_layout()
         self.set_button_clicks()
         self.setLayout(self.layout)
         self.setFixedSize(self.layout.sizeHint())
@@ -716,10 +715,10 @@ class SimRemoveCrystal(QWidget):
             crystal = self.manager.tertiary_crystal
         if not crystal:
             return
-        if pathlib.Path(f'{REPO_DIR}/data/custom_crystals.yaml').exists():
-            remove_crystal(crystal_name=crystal, file_path_to_read=f'{REPO_DIR}/data/custom_crystals.yaml', file_path_to_write=f'{REPO_DIR}/data/custom_crystals.yaml')
+        if pathlib.Path(f'{PACKAGE_DIR}/data/custom_crystals.yaml').exists():
+            remove_crystal(crystal_name=crystal, file_path_to_read=f'{PACKAGE_DIR}/data/custom_crystals.yaml', file_path_to_write=f'{PACKAGE_DIR}/data/custom_crystals.yaml')
         else:
-            remove_crystal(crystal_name=crystal, file_path_to_read=f'{REPO_DIR}/data/default_crystals.yaml', file_path_to_write=f'{REPO_DIR}/data/custom_crystals.yaml')
+            remove_crystal(crystal_name=crystal, file_path_to_read=f'{PACKAGE_DIR}/data/default_crystals.yaml', file_path_to_write=f'{PACKAGE_DIR}/data/custom_crystals.yaml')
         self.regenerate_table()
         self.signal.emit()
         self.layout.itemAt(1).widget().setEnabled(True)
@@ -770,7 +769,7 @@ class SimKeyWin(QWidget):
 
         if valid_key:
             message.setText(f'Valid API key was uploaded.\n\nKey has been stored locally in ~/configs/materials_project_api_key.txt')
-            with open(f'{REPO_DIR}/configs/materials_project_api_key.txt', 'w') as file:
+            with open(f'{PACKAGE_DIR}/configs/materials_project_api_key.txt', 'w') as file:
                 file.write(key)
             file.close()
         else:
@@ -857,7 +856,7 @@ class SimSelection(QWidget):
         self.layout.itemAtPosition(1,0).widget().layout().itemAtPosition(0,2).layout().itemAt(0).widget().clicked.connect(self.add_button_clicked)
         self.layout.itemAtPosition(1,0).widget().layout().itemAtPosition(0,2).layout().itemAt(1).widget().clicked.connect(self.remove_button_clicked)
         self.layout.itemAtPosition(1,0).widget().layout().itemAtPosition(0,2).layout().itemAt(2).widget().clicked.connect(self.reconfig_button_clicked)
-        if pathlib.Path(f'{REPO_DIR}/data/custom_crystals.yaml').exists():
+        if pathlib.Path(f'{PACKAGE_DIR}/data/custom_crystals.yaml').exists():
             self.layout.itemAtPosition(1,0).widget().layout().itemAtPosition(0,2).layout().itemAt(2).widget().setEnabled(True)
         else:
             self.layout.itemAtPosition(1,0).widget().layout().itemAtPosition(0,2).layout().itemAt(2).widget().setEnabled(False)
@@ -923,7 +922,7 @@ class SimSelection(QWidget):
         self.crystal_type_change()
 
     def reconfig_button_clicked(self) -> None:
-        if not pathlib.Path(f'{REPO_DIR}/data/custom_crystals.yaml').exists():
+        if not pathlib.Path(f'{PACKAGE_DIR}/data/custom_crystals.yaml').exists():
             return
         self.layout.itemAtPosition(1,0).widget().layout().itemAtPosition(0,2).layout().itemAt(2).widget().setEnabled(False)
         message = QMessageBox(self)
@@ -934,7 +933,7 @@ class SimSelection(QWidget):
         message.addButton(QMessageBox.StandardButton.Cancel)
         reply = message.exec()
         if reply == QMessageBox.StandardButton.Yes:
-            os.remove(f'{REPO_DIR}/data/custom_crystals.yaml')
+            os.remove(f'{PACKAGE_DIR}/data/custom_crystals.yaml')
             self.refresh_table()
         else:
             self.layout.itemAtPosition(1,0).widget().layout().itemAtPosition(0,2).layout().itemAt(2).widget().setEnabled(True)
@@ -993,23 +992,7 @@ class MainWindow(QWidget):
             self.additional_win.close()
         event.accept()
 
-def main():
-    all_files = check_files()
-    if isinstance(all_files, str):
-        print(f"Missing the following project files:{all_files}")
-        while True:
-            print("\n0\tReclone package from live git (will overwrite any custom files) \nq\tQuit program\t")
-            user_input = input("Selection: ")
-            if user_input == '0':
-                pull_missing_files()
-                break 
-            elif user_input == 'q':
-                return
-    OS_CONFIG.set_config()
-    if OS_CONFIG.invalid_os == True: #Test to see if the os is valid before starting application, kills script if it is invalid
-        print(f"Version {pkg_resources.get_distribution('shg_simulation').version} of SHG Simulation Package is not supported on this operating system.")
-        print("Supported operating systems: Windows, macOS, and Linux.")
-        return
+def init_gui():
     app = QApplication(sys.argv)
     QLoggingCategory.setFilterRules("qt.qpa.fonts.warning=false")
     QApplication.instance().setStyleSheet(OS_CONFIG.style_sheet)

@@ -3,13 +3,12 @@ import os
 from typing import Union
 import git
 
-REPO_DIR = pathlib.Path(__file__).parent.parent.resolve()
-PACKAGE_DIR = pathlib.Path(__file__).parent.parent.parent.resolve()
+from .sys_config import PACKAGE_DIR, REPO_DIR
 
 def check_files() -> Union[bool, str]:
     missing_configs = []
-    if os.path.exists(f'{REPO_DIR}/configs'):
-        configs = os.listdir(f'{REPO_DIR}/configs')
+    if os.path.exists(f'{PACKAGE_DIR}/configs'):
+        configs = os.listdir(f'{PACKAGE_DIR}/configs')
         for file in ['darwin_config.yaml', 'windows_config.yaml', 'linux_config.yaml']:
             if file not in configs:
                 missing_configs.append(file)
@@ -17,8 +16,8 @@ def check_files() -> Union[bool, str]:
         missing_configs = ['darwin_config.yaml, windows_config.yaml', 'linux_config.yaml']
 
     missing_data = []
-    if os.path.exists(f'{REPO_DIR}/data'):
-        data = os.listdir(f'{REPO_DIR}/data')
+    if os.path.exists(f'{PACKAGE_DIR}/data'):
+        data = os.listdir(f'{PACKAGE_DIR}/data')
         for file in ['default_crystals.yaml', 'point_groups.yaml']:
             if file not in data:
                 missing_data.append(file)
@@ -26,18 +25,17 @@ def check_files() -> Union[bool, str]:
         missing_data = ['default_crystals.yaml', 'point_groups.yaml']
 
     missing_fits = []
-    if os.path.exists(f'{REPO_DIR}/fits'):
-        fits = os.listdir(f'{REPO_DIR}/fits')
+    if os.path.exists(f'{PACKAGE_DIR}/fits'):
+        fits = os.listdir(f'{PACKAGE_DIR}/fits')
         for file in ['default_fits.yaml']:
             if file not in fits:
                 missing_fits.append(file)
     else:
         missing_fits = ['default_fits.yaml']
 
-
     missing_imgs = []
-    if os.path.exists(f'{REPO_DIR}/imgs'):
-        imgs = os.listdir(f'{REPO_DIR}/imgs')
+    if os.path.exists(f'{PACKAGE_DIR}/imgs'):
+        imgs = os.listdir(f'{PACKAGE_DIR}/imgs')
         for file in ['logo_full.png', 'logo_mini.png']:
             if file not in imgs:
                 missing_imgs.append(file)
@@ -45,8 +43,8 @@ def check_files() -> Union[bool, str]:
         missing_imgs = ['logo_full.png', 'logo_mini.png']
 
     missing_styles = []
-    if os.path.exists(f'{REPO_DIR}/styles'):
-        styles = os.listdir(f'{REPO_DIR}/styles')
+    if os.path.exists(f'{PACKAGE_DIR}/styles'):
+        styles = os.listdir(f'{PACKAGE_DIR}/styles')
         for file in ['darwin_styles.qss', 'windows_styles.qss','linux_styles.qss']:
             if file not in styles:
                 missing_styles.append(file)
@@ -54,8 +52,8 @@ def check_files() -> Union[bool, str]:
         missing_styles = ['logo_full.png', 'logo_mini.png']
 
     missing_roots = []
-    if os.path.exists(f'{PACKAGE_DIR}'):
-        roots = os.listdir(PACKAGE_DIR)
+    if os.path.exists(f'{REPO_DIR}'):
+        roots = os.listdir(REPO_DIR)
         for file in ['updates.txt', 'LICENSE']:
             if file not in roots:
                 missing_roots.append(file)
@@ -83,7 +81,7 @@ def check_files() -> Union[bool, str]:
 
 def pull_missing_files() -> None:
     git_url = 'https://github.com/jduffy0121/SHG_dev.git'
-    repo = git.Repo(PACKAGE_DIR)
+    repo = git.Repo(REPO_DIR)
     repo.remotes.origin.fetch()
     repo.git.reset('--hard', 'origin/main')
     print('\nRepository files successfully recovered.\nRestarting program...')

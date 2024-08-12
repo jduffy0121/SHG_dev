@@ -12,8 +12,8 @@ from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QComboBox, QWidget, QLabe
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF
 from PyQt6.QtGui import QPainterPath, QRegion, QColor
 
-PACKAGE_DIR = pathlib.Path(__file__).parent.parent.parent.resolve()
-REPO_DIR = pathlib.Path(__file__).parent.parent.resolve()
+REPO_DIR = pathlib.Path(__file__).parent.parent.parent.resolve()
+PACKAGE_DIR = pathlib.Path(__file__).parent.parent.resolve()
 
 class OSConfig:
     def __init__(self):
@@ -49,3 +49,5 @@ class OSConfig:
         with open(styles_path, 'r') as file:
             self.style_sheet = file.read() 
         file.close()
+
+OS_CONFIG = OSConfig()
