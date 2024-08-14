@@ -1,3 +1,5 @@
+import pkg_resources
+
 from .sys_config import OS_CONFIG
 from .shg_gui import init_gui
 from .check_repo_files import check_files, pull_missing_files

@@ -23,7 +23,7 @@ def fit_res_create_layout(config):
     layout = QGridLayout()
 
     img_label = QLabel()
-    img = QPixmap(f'{REPO_DIR}/imgs/logo_mini.png')
+    img = QPixmap(f'{PACKAGE_DIR}/imgs/logo_mini.png')
     img_scaled = img.scaled(136,68)
     img_label.setPixmap(img_scaled)
     layout.addWidget(img_label, 0, 2, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
@@ -188,7 +188,7 @@ def fit_inp_create_layout(): #Sets the primary layout for FitInput() window
     #Creates and adds header/img to the layout
     header_label = QLabel("<h1>Import Data for Fit</h1>") 
     img_label = QLabel()
-    img = QPixmap(f'{REPO_DIR}/imgs/logo_mini.png')
+    img = QPixmap(f'{PACKAGE_DIR}/imgs/logo_mini.png')
     img_scaled = img.scaled(136,68)
     img_label.setPixmap(img_scaled)
     layout.addWidget(header_label, 0, 0, 1, 3, alignment=Qt.AlignmentFlag.AlignCenter)

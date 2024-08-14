@@ -1,7 +1,6 @@
 import sys
 import os
 import pathlib
-import pkg_resources
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar, FigureCanvasQTAgg as FigureCanvas
 
